@@ -11,9 +11,10 @@ import (
 )
 
 type MeterRecord struct {
-	Date   time.Time
-	Import float64
-	Export float64
+	Date     time.Time
+	Import   float64
+	Export   float64
+	SolarGen float64
 }
 
 const dataFile = "solar_readings.txt"
@@ -54,42 +55,9 @@ func main() {
 		return
 	}
 
-	// Baseline handling for first run
-	if len(history) == 0 {
-		currImport := promptFloat(reader, "Enter Initial Imported Units (kWh): ", 0)
-		currExport := promptFloat(reader, "Enter Initial Exported Units (kWh): ", 0)
+	currImport := promptFloat(reader, "Enter Current Imported Units (kWh): ")
+	currExport := promptFloat(reader, "Enter Current Exported Units (kWh): ")
 
-		fmt.Println("\n⚠️ Setting this reading as your INITIAL BASELINE.")
-		newRec := MeterRecord{Date: currDate, Import: currImport, Export: currExport}
-		if err := appendRecord(dataFile, newRec); err != nil {
-			fmt.Printf("Error saving initial record: %v\n", err)
-			return
-		}
-		fmt.Printf("✓ Baseline recorded: %s | Import: %.2f kWh | Export: %.2f kWh\n",
-			currDate.Format("02-Jan-2006"), currImport, currExport)
-		fmt.Println("Run again on your next reading date to compute the next period summary.")
-		return
-	}
-
-	lastRecord := history[len(history)-1]
-
-	// Enforce chronological date ordering
-	if !currDate.After(lastRecord.Date) {
-		fmt.Printf("\nError: Current date (%s) must be after the last record date (%s).\n",
-			currDate.Format("2006-01-02"), lastRecord.Date.Format("2006-01-02"))
-		return
-	}
-
-	// Enforce non-decreasing meter readings
-	currImport := promptFloat(reader, fmt.Sprintf("Enter Current Imported Units (kWh) [Min: %.2f]: ", lastRecord.Import), lastRecord.Import)
-	currExport := promptFloat(reader, fmt.Sprintf("Enter Current Exported Units (kWh) [Min: %.2f]: ", lastRecord.Export), lastRecord.Export)
-
-	importDiff := currImport - lastRecord.Import
-	exportDiff := currExport - lastRecord.Export
-	netBalance := exportDiff - importDiff
-	days := currDate.Sub(lastRecord.Date).Hours() / 24
-
-	// Optional inverter yield for home consumption calculation
 	solarGenInput := promptInput(reader, "Enter Total Solar Inverter Yield for this period (kWh) [Press Enter if unknown]: ")
 	var solarGen float64
 	var hasSolarData bool
@@ -101,15 +69,48 @@ func main() {
 		}
 	}
 
-	// 4. Display Current Period Summary
+	// 4. Processing logic: First run vs. Comparative calculation
+	if len(history) == 0 {
+		fmt.Println("\n⚠️ Setting this reading as your INITIAL BASELINE.")
+		newRec := MeterRecord{
+			Date:     currDate,
+			Import:   currImport,
+			Export:   currExport,
+			SolarGen: solarGen,
+		}
+		if err := appendRecord(dataFile, newRec); err != nil {
+			fmt.Printf("Error saving initial record: %v\n", err)
+			return
+		}
+		fmt.Printf("✓ Baseline recorded: %s | Import: %.2f kWh | Export: %.2f kWh | Solar: %.2f kWh\n",
+			currDate.Format("02-Jan-2006"), currImport, currExport, solarGen)
+		fmt.Println("Run again on your next reading date to compute the next period summary.")
+		return
+	}
+
+	// Calculate period results relative to the last recorded entry
+	lastRecord := history[len(history)-1]
+
+	// Validation for chronological order
+	if !currDate.After(lastRecord.Date) {
+		fmt.Printf("\nWarning: Current date (%s) is not after previous reading date (%s).\n",
+			currDate.Format("2006-01-02"), lastRecord.Date.Format("2006-01-02"))
+	}
+
+	importDiff := currImport - lastRecord.Import
+	exportDiff := currExport - lastRecord.Export
+	netBalance := exportDiff - importDiff
+	days := currDate.Sub(lastRecord.Date).Hours() / 24
+
+	// 5. Display Current Period Summary
 	fmt.Println("\n==========================================================================")
 	fmt.Println(" NEW PERIOD SUMMARY RESULT ")
 	fmt.Println("==========================================================================")
-	fmt.Printf("Period          : %s to %s (%.0f days)\n",
+	fmt.Printf("Period      : %s to %s (%.0f days)\n",
 		lastRecord.Date.Format("02-Jan-2006"), currDate.Format("02-Jan-2006"), days)
-	fmt.Printf("Grid Import     : %.2f kWh -> %.2f kWh (Diff: +%.2f kWh)\n",
+	fmt.Printf("Grid Import : %.2f kWh -> %.2f kWh (Diff: +%.2f kWh)\n",
 		lastRecord.Import, currImport, importDiff)
-	fmt.Printf("Grid Export     : %.2f kWh -> %.2f kWh (Diff: +%.2f kWh)\n",
+	fmt.Printf("Grid Export : %.2f kWh -> %.2f kWh (Diff: +%.2f kWh)\n",
 		lastRecord.Export, currExport, exportDiff)
 	fmt.Println("--------------------------------------------------------------------------")
 
@@ -122,17 +123,23 @@ func main() {
 	if hasSolarData {
 		consumption := (solarGen + importDiff) - exportDiff
 		fmt.Println("--------------------------------------------------------------------------")
-		fmt.Printf("Solar Generation: %.2f kWh Yield\n", solarGen)
+		fmt.Printf("Solar Generation : %.2f kWh Yield\n", solarGen)
 		if days > 0 {
-			fmt.Printf("Home Consumption: %.2f kWh (Avg %.2f kWh/day)\n", consumption, consumption/days)
+			fmt.Printf("Home Consumption : %.2f kWh (Avg %.2f kWh/day)\n", consumption, consumption/days)
 		} else {
-			fmt.Printf("Home Consumption: %.2f kWh\n", consumption)
+			fmt.Printf("Home Consumption : %.2f kWh\n", consumption)
 		}
 	}
 	fmt.Println("==========================================================================\n")
 
-	// 5. Append new record to data storage
-	newRec := MeterRecord{Date: currDate, Import: currImport, Export: currExport}
+	// 6. Append new record to database
+	newRec := MeterRecord{
+		Date:     currDate,
+		Import:   currImport,
+		Export:   currExport,
+		SolarGen: solarGen,
+	}
+
 	if err := appendRecord(dataFile, newRec); err != nil {
 		fmt.Printf("Error updating file: %v\n", err)
 		return
@@ -168,7 +175,19 @@ func loadHistory(filename string) ([]MeterRecord, error) {
 		exp, err3 := strconv.ParseFloat(parts[2], 64)
 
 		if err1 == nil && err2 == nil && err3 == nil {
-			records = append(records, MeterRecord{Date: d, Import: imp, Export: exp})
+			var gen float64
+			if len(parts) >= 4 {
+				if parsedGen, err4 := strconv.ParseFloat(parts[3], 64); err4 == nil {
+					gen = parsedGen
+				}
+			}
+
+			records = append(records, MeterRecord{
+				Date:     d,
+				Import:   imp,
+				Export:   exp,
+				SolarGen: gen,
+			})
 		}
 	}
 
@@ -177,11 +196,11 @@ func loadHistory(filename string) ([]MeterRecord, error) {
 
 func displayHistorySummary(history []MeterRecord) {
 	fmt.Println("\nHISTORICAL PERIOD-WISE SUMMARY")
-	fmt.Println("--------------------------------------------------------------------------")
+	fmt.Println("----------------------------------------------------------------------------------------------------------")
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
-	fmt.Fprintln(w, "PERIOD\tDAYS\tIMPORT (+)\tEXPORT (+)\tNET GRID STATUS\t")
-	fmt.Fprintln(w, "------\t----\t----------\t----------\t---------------\t")
+	fmt.Fprintln(w, "PERIOD\tDAYS\tIMPORT (+)\tEXPORT (+)\tSOLAR YIELD\tHOME CONSUMPTION\tNET GRID STATUS\t")
+	fmt.Fprintln(w, "------\t----\t----------\t----------\t-----------\t----------------\t---------------\t")
 
 	for i := 1; i < len(history); i++ {
 		prev := history[i-1]
@@ -201,14 +220,26 @@ func displayHistorySummary(history []MeterRecord) {
 			netStr = fmt.Sprintf("%.2f kWh (Import)", net)
 		}
 
-		fmt.Fprintf(w, "%s\t%.0f\t+%.2f kWh\t+%.2f kWh\t%s\t\n",
-			periodStr, days, impDiff, expDiff, netStr)
+		solarStr := "-"
+		consumptionStr := "-"
+		if curr.SolarGen > 0 {
+			solarStr = fmt.Sprintf("%.2f kWh", curr.SolarGen)
+			consumption := (curr.SolarGen + impDiff) - expDiff
+			if days > 0 {
+				consumptionStr = fmt.Sprintf("%.2f kWh (%.2f/d)", consumption, consumption/days)
+			} else {
+				consumptionStr = fmt.Sprintf("%.2f kWh", consumption)
+			}
+		}
+
+		fmt.Fprintf(w, "%s\t%.0f\t+%.2f kWh\t+%.2f kWh\t%s\t%s\t%s\t\n",
+			periodStr, days, impDiff, expDiff, solarStr, consumptionStr, netStr)
 	}
 	w.Flush()
-	fmt.Printf("\nLast Recorded Meter Baseline (%s): Import = %.2f kWh | Export = %.2f kWh\n",
-		history[len(history)-1].Date.Format("02-Jan-2006"),
-		history[len(history)-1].Import,
-		history[len(history)-1].Export)
+
+	last := history[len(history)-1]
+	fmt.Printf("\nLast Recorded Meter Baseline (%s): Import = %.2f kWh | Export = %.2f kWh | Solar Yield = %.2f kWh\n",
+		last.Date.Format("02-Jan-2006"), last.Import, last.Export, last.SolarGen)
 }
 
 func appendRecord(filename string, r MeterRecord) error {
@@ -218,7 +249,7 @@ func appendRecord(filename string, r MeterRecord) error {
 	}
 	defer file.Close()
 
-	line := fmt.Sprintf("%s|%.2f|%.2f\n", r.Date.Format("2006-01-02"), r.Import, r.Export)
+	line := fmt.Sprintf("%s|%.2f|%.2f|%.2f\n", r.Date.Format("2006-01-02"), r.Import, r.Export, r.SolarGen)
 	_, err = file.WriteString(line)
 	return err
 }
@@ -229,13 +260,13 @@ func promptInput(r *bufio.Reader, label string) string {
 	return strings.TrimSpace(str)
 }
 
-func promptFloat(r *bufio.Reader, label string, minVal float64) float64 {
+func promptFloat(r *bufio.Reader, label string) float64 {
 	for {
 		s := promptInput(r, label)
 		val, err := strconv.ParseFloat(s, 64)
-		if err == nil && val >= minVal {
+		if err == nil {
 			return val
 		}
-		fmt.Printf("Invalid input. Please enter a numerical value >= %.2f.\n", minVal)
+		fmt.Println("Invalid input. Please enter a valid numerical value.")
 	}
 }
