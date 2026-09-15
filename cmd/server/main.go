@@ -37,7 +37,7 @@ func main() {
 	// Form submission endpoint for HTMX
 	mux.HandleFunc("/api/readings", handler.HandleCreateReading)
 
-	fmt.Println("⚡ Solar Monitor running at http://localhost:8080")
+	fmt.Println("⚡ Solar Monitor running at http://0.0.0.0:8080")
 	if err := http.ListenAndServe(":8080", mux); err != nil {
 		log.Fatal(err)
 	}
