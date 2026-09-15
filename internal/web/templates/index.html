@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solar & Grid Monitor</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <!-- Embedded Offline JavaScript Dependencies -->
+    <script src="/static/js/htmx.min.js" defer></script>
+    <script src="/static/js/alpine.min.js" defer></script>
+</head>
+<body class="bg-gray-100 text-gray-900 font-sans p-6">
+
+    <div class="max-w-6xl mx-auto" x-data="{ showForm: false }">
+        <header class="flex justify-between items-center mb-8 border-b pb-4">
+            <h1 class="text-3xl font-bold text-amber-600">⚡ Solar & Grid Meter Monitor</h1>
+            <button @click="showForm = !showForm" 
+                    class="bg-amber-500 hover:bg-amber-600 text-white font-semibold px-4 py-2 rounded transition">
+                <span x-text="showForm ? 'Close Form' : '+ Add Reading'"></span>
+            </button>
+        </header>
+
+        <!-- Dynamic HTMX Swap Container -->
+        <div id="dashboard" hx-get="/" hx-trigger="readingAdded from:body" hx-target="#dashboard" hx-swap="outerHTML">
+            {{ template "dashboard-content" . }}
+        </div>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,102 @@
+{{ define "entry.html" }}
+<div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Form Side -->
+    <div class="lg:col-span-1 bg-slate-900 border border-slate-800 rounded-lg p-6 shadow-lg h-fit">
+        <h2 class="text-base font-semibold text-slate-100 mb-4">Log New Reading</h2>
+
+        {{ if .Error }}
+        <div class="mb-4 p-3 bg-red-950/80 border border-red-800/80 rounded text-xs text-red-200">
+            <span class="font-bold">Error:</span> {{ .Error }}
+        </div>
+        {{ end }}
+
+        <form hx-post="/api/readings" 
+              hx-target="#tab-content" 
+              hx-swap="innerHTML" 
+              class="space-y-4">
+            
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Date</label>
+                <input type="date" 
+                       name="date" 
+                       value="{{ todayDate }}" 
+                       required 
+                       class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
+            </div>
+
+            <!-- Solar Generation Input -->
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Solar Generated (kWh)</label>
+                <input type="number" 
+                       step="0.01" 
+                       name="solar_gen" 
+                       placeholder="e.g. 14.50" 
+                       required 
+                       class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Export Reading (kWh)</label>
+                <input type="number" 
+                       step="0.01" 
+                       name="export" 
+                       placeholder="e.g. 1420.50" 
+                       required 
+                       class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Import Reading (kWh)</label>
+                <input type="number" 
+                       step="0.01" 
+                       name="import" 
+                       placeholder="e.g. 850.25" 
+                       required 
+                       class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500">
+            </div>
+
+            <button type="submit" 
+                    class="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-semibold py-2 rounded text-sm transition-colors">
+                Save Reading
+            </button>
+        </form>
+    </div>
+
+    <!-- Table Side -->
+    <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-lg p-6 shadow-lg flex flex-col">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-semibold text-slate-100">Logged Data Records</h2>
+            <span class="text-xs text-slate-400 font-mono">{{ len .Overview.Records }} total entries</span>
+        </div>
+
+        <div class="overflow-y-auto max-h-[500px]">
+            <table class="w-full text-left text-xs text-slate-300">
+                <thead class="sticky top-0 bg-slate-900 border-b border-slate-800 text-slate-400">
+                    <tr>
+                        <th class="p-2.5">Date</th>
+                        <th class="p-2.5">Solar Gen</th>
+                        <th class="p-2.5">Export</th>
+                        <th class="p-2.5">Import</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/50">
+                    {{ range .Overview.Records }}
+                    <tr class="hover:bg-slate-800/30 transition-colors">
+                        <td class="p-2.5 font-medium text-slate-200">{{ formatDate .Date }}</td>
+                        <td class="p-2.5 text-amber-400 font-mono">{{ printf "%.2f" .SolarGen }} kWh</td>
+                        <td class="p-2.5 text-emerald-400 font-mono">{{ printf "%.2f" .Export }} kWh</td>
+                        <td class="p-2.5 text-red-400 font-mono">{{ printf "%.2f" .Import }} kWh</td>
+                    </tr>
+                    {{ else }}
+                    <tr>
+                        <td colspan="4" class="p-6 text-center text-slate-500">
+                            No readings logged yet.
+                        </td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{{ end }}

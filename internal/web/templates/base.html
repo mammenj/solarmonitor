@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solar Monitor Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <script src="/static/js/htmx.min.js" defer></script>
+    <script src="/static/js/alpine.min.js" defer></script>
+</head>
+<body class="h-full flex flex-col overflow-hidden font-sans antialiased">
+
+    <!-- Top Navigation / Header -->
+    <header class="h-14 border-b border-slate-800 bg-slate-900/80 backdrop-blur flex items-center justify-between px-6 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="h-3 w-3 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span class="font-semibold text-slate-100 tracking-wide text-sm">SOLAR MONITOR <span class="text-xs text-slate-500 ml-2 font-mono">v1.0</span></span>
+        </div>
+        
+        <!-- Tab Navigation Bar -->
+        <nav class="flex h-full gap-1" x-data="{ activeTab: 'dashboard' }">
+            <button 
+                hx-get="/app/dashboard" 
+                hx-target="#tab-content" 
+                hx-swap="innerHTML"
+                @click="activeTab = 'dashboard'"
+                :class="activeTab === 'dashboard' ? 'border-emerald-500 text-emerald-400 bg-slate-800/50' : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/30'"
+                class="px-5 h-full border-b-2 flex items-center text-xs font-medium transition-all duration-150">
+                Dashboard Summary
+            </button>
+            <button 
+                hx-get="/app/entry" 
+                hx-target="#tab-content" 
+                hx-swap="innerHTML"
+                @click="activeTab = 'entry'"
+                :class="activeTab === 'entry' ? 'border-emerald-500 text-emerald-400 bg-slate-800/50' : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/30'"
+                class="px-5 h-full border-b-2 flex items-center text-xs font-medium transition-all duration-150">
+                Data Entry
+            </button>
+        </nav>
+
+        <div class="text-xs text-slate-400 font-mono">
+            System Online
+        </div>
+    </header>
+
+    <!-- Main Dynamic Tab Container (Fits exact viewport remainder) -->
+    <main id="tab-content" class="flex-1 overflow-hidden p-4 md:p-6 bg-slate-950">
+        <!-- Initial Load: Dashboard Tab Content -->
+        {{ template "dashboard.html" . }}
+    </main>
+
+</body>
+</html>
