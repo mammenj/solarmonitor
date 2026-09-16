@@ -1,112 +1,178 @@
 {{ define "dashboard.html" }}
-<div class="h-full flex flex-col gap-4">
-    <!-- Top Metric Cards (Aggregated totals across all records) -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 shrink-0">
+<!-- Replace this line in dashboard.html: -->
+<div class="min-h-0 flex-1 flex flex-col gap-4">
+    <!-- Top Metric Cards Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 shrink-0">
+        
         <!-- Total Readings Count -->
-        <div class="bg-slate-900 border border-slate-800 rounded-lg p-4">
-            <div class="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Readings</div>
-            <div class="text-2xl font-bold text-slate-100 mt-1">
-                {{ len .Overview.Records }} <span class="text-sm font-normal text-slate-400">entries</span>
+        <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5 flex flex-col justify-between">
+            <div>
+                <div class="text-[10px] sm:text-xs font-medium text-slate-400 uppercase tracking-wider">Total Readings</div>
+                <div class="text-xl sm:text-2xl font-bold text-slate-100 mt-1">
+                    {{ len .Overview.Records }} <span class="text-xs sm:text-sm font-normal text-slate-400">entries</span>
+                </div>
             </div>
-            <div class="text-xs text-slate-400 mt-1">Logged in filestore</div>
+            <div class="text-[10px] sm:text-xs text-slate-500 mt-1">Logged in filestore</div>
         </div>
 
         <!-- Total Export Generated -->
-        <div class="bg-slate-900 border border-slate-800 rounded-lg p-4">
-            <div class="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Export</div>
-            <div class="text-2xl font-bold text-emerald-400 mt-1">
-                {{ $totalExport := 0.0 }}
-                {{ range .Overview.Summaries }}
-                    {{ $totalExport = add $totalExport .ExportDiff }}
-                {{ end }}
-                {{ printf "%.2f" $totalExport }}
-                <span class="text-sm font-normal text-slate-400">kWh</span>
+        <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5 flex flex-col justify-between">
+            <div>
+                <div class="text-[10px] sm:text-xs font-medium text-slate-400 uppercase tracking-wider">Total Export</div>
+                <div class="text-xl sm:text-2xl font-bold text-emerald-400 mt-1">
+                    {{ $totalExport := 0.0 }}
+                    {{ range .Overview.Summaries }}
+                        {{ $totalExport = add $totalExport .ExportDiff }}
+                    {{ end }}
+                    {{ printf "%.2f" $totalExport }}
+                    <span class="text-xs sm:text-sm font-normal text-slate-400">kWh</span>
+                </div>
             </div>
-            <div class="text-xs text-emerald-500/80 mt-1">Cumulative grid export</div>
+            <div class="text-[10px] sm:text-xs text-emerald-500/80 mt-1">Cumulative grid export</div>
         </div>
 
         <!-- Total Import Consumed -->
-        <div class="bg-slate-900 border border-slate-800 rounded-lg p-4">
-            <div class="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Import</div>
-            <div class="text-2xl font-bold text-red-400 mt-1">
-                {{ $totalImport := 0.0 }}
-                {{ range .Overview.Summaries }}
-                    {{ $totalImport = add $totalImport .ImportDiff }}
-                {{ end }}
-                {{ printf "%.2f" $totalImport }}
-                <span class="text-sm font-normal text-slate-400">kWh</span>
+        <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5 flex flex-col justify-between">
+            <div>
+                <div class="text-[10px] sm:text-xs font-medium text-slate-400 uppercase tracking-wider">Total Import</div>
+                <div class="text-xl sm:text-2xl font-bold text-red-400 mt-1">
+                    {{ $totalImport := 0.0 }}
+                    {{ range .Overview.Summaries }}
+                        {{ $totalImport = add $totalImport .ImportDiff }}
+                    {{ end }}
+                    {{ printf "%.2f" $totalImport }}
+                    <span class="text-xs sm:text-sm font-normal text-slate-400">kWh</span>
+                </div>
             </div>
-            <div class="text-xs text-red-500/80 mt-1">Cumulative grid import</div>
+            <div class="text-[10px] sm:text-xs text-red-500/80 mt-1">Cumulative grid import</div>
         </div>
 
         <!-- Total Net Balance -->
-        <div class="bg-slate-900 border border-slate-800 rounded-lg p-4">
-            <div class="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Net Balance</div>
-            <div class="text-2xl font-bold text-slate-100 mt-1">
-                {{ $totalNet := 0.0 }}
-                {{ range .Overview.Summaries }}
-                    {{ $totalNet = add $totalNet .NetBalance }}
-                {{ end }}
-                {{ printf "%.2f" $totalNet }}
-                <span class="text-sm font-normal text-slate-400">kWh</span>
+        <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5 flex flex-col justify-between">
+            <div>
+                <div class="text-[10px] sm:text-xs font-medium text-slate-400 uppercase tracking-wider">Total Net Balance</div>
+                <div class="text-xl sm:text-2xl font-bold text-slate-100 mt-1">
+                    {{ $totalNet := 0.0 }}
+                    {{ range .Overview.Summaries }}
+                        {{ $totalNet = add $totalNet .NetBalance }}
+                    {{ end }}
+                    {{ printf "%.2f" $totalNet }}
+                    <span class="text-xs sm:text-sm font-normal text-slate-400">kWh</span>
+                </div>
             </div>
-            <div class="text-xs text-slate-400 mt-1">Net energy generation</div>
+            <div class="text-[10px] sm:text-xs text-slate-500 mt-1">Net energy generation</div>
         </div>
-        <div class="bg-slate-900 border border-slate-800 rounded-lg p-4">
-          <div class="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Solar Generated</div>
-            <div class="text-2xl font-bold text-amber-400 mt-1">
-              {{ $totalGen := 0.0 }}
-              {{ range .Overview.Records }}
-                {{ $totalGen = add $totalGen .SolarGen }}
-              {{ end }}
-              {{ printf "%.2f" $totalGen }}
-              <span class="text-sm font-normal text-slate-400">kWh</span>
+
+        <!-- Total Solar Generated -->
+        <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5 flex flex-col justify-between">
+            <div>
+                <div class="text-[10px] sm:text-xs font-medium text-slate-400 uppercase tracking-wider">Total Solar Generated</div>
+                <div class="text-xl sm:text-2xl font-bold text-amber-400 mt-1">
+                    {{ $totalGen := 0.0 }}
+                    {{ range .Overview.Records }}
+                        {{ $totalGen = add $totalGen .SolarGen }}
+                    {{ end }}
+                    {{ printf "%.2f" $totalGen }}
+                    <span class="text-xs sm:text-sm font-normal text-slate-400">kWh</span>
+                </div>
             </div>
-          <div class="text-xs text-amber-500/80 mt-1">Cumulative inverter yield</div>
+            <div class="text-[10px] sm:text-xs text-amber-500/80 mt-1">Cumulative inverter yield</div>
         </div>
-        <div class="bg-slate-900 border border-slate-800 rounded-lg p-4">
-          <div class="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Consumed</div>
-            <div class="text-2xl font-bold text-amber-400 mt-1">
-              {{ printf "%.2f" .Overview.TotalHomeConsumption }}
-              <span class="text-sm font-normal text-slate-400">kWh</span>
+
+        <!-- Total Home Consumed -->
+        <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5 flex flex-col justify-between">
+            <div>
+                <div class="text-[10px] sm:text-xs font-medium text-slate-400 uppercase tracking-wider">Total Consumed</div>
+                <div class="text-xl sm:text-2xl font-bold text-cyan-400 mt-1">
+                    {{ printf "%.2f" .Overview.TotalHomeConsumption }}
+                    <span class="text-xs sm:text-sm font-normal text-slate-400">kWh</span>
+                </div>
             </div>
-          <div class="text-xs text-amber-500/80 mt-1">Cumulative Home Consumed</div>
+            <div class="text-[10px] sm:text-xs text-cyan-500/80 mt-1">Cumulative Home Consumed</div>
         </div>
 
     </div>
 
-    <!-- Main Historical Table -->
-    <div class="bg-slate-900 border border-slate-800 rounded-lg p-4 flex-1 overflow-auto">
-        <h2 class="text-sm font-semibold text-slate-200 mb-3">Period Summaries</h2>
-        <table class="w-full text-left text-xs text-slate-300">
-            <thead>
-                <tr class="border-b border-slate-800 text-slate-400">
-                    <th class="p-2">Period Range</th>
-                    <th class="p-2">Days</th>
-                    <th class="p-2">Import Added</th>
-                    <th class="p-2">Export Added</th>
-                    <th class="p-2">Net Difference</th>
-                    <th class="p-2">Home Consumption</th>
-                </tr>
-            </thead>
-            <tbody>
-                {{ range .Overview.Summaries }}
-                <tr class="border-b border-slate-800/50">
-                    <td class="p-2">{{ formatDate .FromDate }} - {{ formatDate .ToDate }}</td>
-                    <td class="p-2">{{ printf "%.0f" .Days }}</td>
-                    <td class="p-2 text-red-400">+{{ printf "%.2f" .ImportDiff }} kWh</td>
-                    <td class="p-2 text-emerald-400">+{{ printf "%.2f" .ExportDiff }} kWh</td>
-                    <td class="p-2 font-bold">{{ printf "%.2f" .NetBalance }} kWh</td>
-                    <td class="p-2 font-bold">{{ printf "%.2f" .Consumption }} kWh -> {{ printf "%.2f" .DailyAvgConsom }}/day kWh</td>
+    <!-- Main Historical Period Summaries Container -->
+    <div class="bg-slate-900 border border-slate-800 rounded-lg p-4 flex-1 flex flex-col min-h-0 overflow-hidden">
+        <h2 class="text-xs sm:text-sm font-semibold text-slate-200 mb-3 shrink-0">Period Summaries</h2>
 
-                </tr>
-                {{ else }}
-                <tr>
-                    <td colspan="5" class="p-4 text-center text-slate-500">No records found. Switch to Data Entry tab to log readings.</td>
-                </tr>
-                {{ end }}
-            </tbody>
-        </table>
+        <!-- Mobile Card View (Small Screens) -->
+        <div class="block md:hidden overflow-y-auto space-y-2.5 flex-1 pr-1">
+            {{ range .Overview.Summaries }}
+            <div class="bg-slate-950 border border-slate-800 rounded-md p-3 text-xs space-y-2">
+                <div class="font-medium text-slate-200 border-b border-slate-800 pb-1.5 flex justify-between items-center">
+                    <span>{{ formatDate .FromDate }} → {{ formatDate .ToDate }}</span>
+                    <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full font-mono">{{ printf "%.0f" .Days }} days</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 pt-0.5 font-mono text-[11px]">
+                    <div>
+                        <span class="text-slate-500 block text-[9px] font-sans">Import Added</span>
+                        <span class="text-red-400">+{{ printf "%.2f" .ImportDiff }} kWh</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block text-[9px] font-sans">Export Added</span>
+                        <span class="text-emerald-400">+{{ printf "%.2f" .ExportDiff }} kWh</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block text-[9px] font-sans">Net Difference</span>
+                        <span class="text-slate-200 font-bold">{{ printf "%.2f" .NetBalance }} kWh</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block text-[9px] font-sans">Home Consumed</span>
+                        <span class="text-cyan-400 font-bold">{{ printf "%.2f" .Consumption }} kWh</span>
+                    </div>
+                </div>
+                <div class="text-[10px] text-slate-400 bg-slate-900/60 p-1.5 rounded border border-slate-800/80 flex justify-between font-mono">
+                    <span class="font-sans text-slate-500">Daily Average:</span>
+                    <span class="text-cyan-300">{{ printf "%.2f" .DailyAvgConsom }} kWh/day</span>
+                </div>
+            </div>
+            {{ else }}
+            <div class="p-6 text-center text-slate-500 text-xs">
+                No records found. Switch to Data Entry tab to log readings.
+            </div>
+            {{ end }}
+        </div>
+
+        <!-- Desktop Table View (Medium & Large Screens) -->
+        <div class="hidden md:block overflow-y-auto flex-1">
+            <table class="w-full text-left text-xs text-slate-300">
+                <thead class="sticky top-0 bg-slate-900 border-b border-slate-800 text-slate-400 z-10">
+                    <tr>
+                        <th class="p-2.5">Period Range</th>
+                        <th class="p-2.5">Days</th>
+                        <th class="p-2.5">Import Added</th>
+                        <th class="p-2.5">Export Added</th>
+                        <th class="p-2.5">Net Difference</th>
+                        <th class="p-2.5">Home Consumption</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                    {{ range .Overview.Summaries }}
+                    <tr class="hover:bg-slate-800/30 transition-colors">
+                        <td class="p-2.5 text-slate-200 font-medium">{{ formatDate .FromDate }} - {{ formatDate .ToDate }}</td>
+                        <td class="p-2.5 font-mono text-slate-400">{{ printf "%.0f" .Days }}</td>
+                        <td class="p-2.5 text-red-400 font-mono">+{{ printf "%.2f" .ImportDiff }} kWh</td>
+                        <td class="p-2.5 text-emerald-400 font-mono">+{{ printf "%.2f" .ExportDiff }} kWh</td>
+                        <td class="p-2.5 font-bold font-mono text-slate-200">{{ printf "%.2f" .NetBalance }} kWh</td>
+                        <td class="p-2.5 font-bold font-mono text-cyan-400">
+                            {{ printf "%.2f" .Consumption }} kWh 
+                            <span class="text-slate-500 font-normal text-[10px] font-sans">({{ printf "%.2f" .DailyAvgConsom }} kWh/day)</span>
+                        </td>
+                    </tr>
+                    {{ else }}
+                    <tr>
+                        <td colspan="6" class="p-6 text-center text-slate-500">
+                            No records found. Switch to Data Entry tab to log readings.
+                        </td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </div>
+
     </div>
+
 </div>
 {{ end }}
