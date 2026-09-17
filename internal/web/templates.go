@@ -2,6 +2,7 @@ package web
 
 import (
 	"embed"
+	"encoding/json"
 	"html/template"
 	"time"
 )
@@ -45,6 +46,13 @@ func InitTemplates() (*template.Template, error) {
 		},
 		"mul":  func(a int, b int) int { return a * b },
 		"mulf": func(a, b float64) float64 { return a * b },
+		"marshalJSON": func(v any) (template.JS, error) {
+			b, err := json.Marshal(v)
+			if err != nil {
+				return "", err
+			}
+			return template.JS(b), nil
+		},
 	}
 
 	return template.New("base").Funcs(funcMap).ParseFS(templateFS, "templates/*.html")
