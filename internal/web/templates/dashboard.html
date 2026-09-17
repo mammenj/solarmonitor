@@ -99,24 +99,24 @@
                 <!-- Dynamic Bars -->
                 {{ range $i, $pt := .Overview.ChartData }}
                     <!-- Calculate x-offset per period group -->
-                    {{ $x := add 60 (mul $i 120) }}
+                    {{ $x := add 60 (mul $i 80) }}
 
                     <!-- Solar Gen Bar (Amber) -->
                     {{ $solarH := mulf $pt.SolarGen 0.1 }}
-                    <rect x="{{ $x }}" y="{{ subf 170 $solarH }}" width="16" height="{{ $solarH }}" fill="#f59e0b" rx="2" />
+                    <rect x="{{ $x }}" y="{{ subf 170 $solarH }}" width="8" height="{{ $solarH }}" fill="#f59e0b" rx="2" />
                     
                     <!-- Export Bar (Emerald) -->
                     {{ $exportH := mulf $pt.Export 0.1 }}
-                    <rect x="{{ add $x 18 }}" y="{{ subf 170 $exportH }}" width="16" height="{{ $exportH }}" fill="#10b981" rx="2" />
+                    <rect x="{{ add $x 18 }}" y="{{ subf 170 $exportH }}" width="8" height="{{ $exportH }}" fill="#10b981" rx="2" />
 
                     <!-- Import Bar (Red) -->
                     {{ $importH := mulf $pt.Import 0.1 }}
-                    <rect x="{{ add $x 36 }}" y="{{ subf 170 $importH }}" width="16" height="{{ $importH }}" fill="#ef4444" rx="2" />
+                    <rect x="{{ add $x 36 }}" y="{{ subf 170 $importH }}" width="8" height="{{ $importH }}" fill="#ef4444" rx="2" />
 
                     <!-- Axis Label -->
-                    <text x="{{ add $x 26 }}" y="188" fill="#64748b" font-size="9" font-family="sans-serif" text-anchor="middle">
+                      <text x="{{ add $x 26 }}" y="188" fill="#64748b" font-size="7" family="font-mono" text-anchor="middle">
                         {{ $pt.Label }}
-                    </text>
+                      </text>
                 {{ end }}
             </svg>
             {{ else }}

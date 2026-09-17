@@ -32,8 +32,8 @@ type SystemOverview struct {
 
 // Helper methods on PeriodSummary for easy template display without structural changes
 
-func (ps PeriodSummary) PeriodName1() string {
-	return ps.FromDate.Format("02-Jan-2026") + " to " + ps.ToDate.Format("02-Jan-2006")
+func (ps PeriodSummary) PeriodLabel() string {
+	return ps.FromDate.Format("02-Jan")
 }
 
 func (ps PeriodSummary) PeriodName() string {
@@ -106,7 +106,7 @@ func (so SystemOverview) ChartData() []ChartPoint {
 	points := make([]ChartPoint, 0, len(so.Summaries))
 	for _, s := range so.Summaries {
 		points = append(points, ChartPoint{
-			Label:       s.PeriodName(),
+			Label:       s.PeriodLabel(),
 			SolarGen:    s.SolarGen,
 			Export:      s.ExportDiff,
 			Import:      s.ImportDiff,
