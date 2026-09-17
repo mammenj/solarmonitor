@@ -33,7 +33,7 @@ type SystemOverview struct {
 // Helper methods on PeriodSummary for easy template display without structural changes
 
 func (ps PeriodSummary) PeriodLabel() string {
-	return ps.FromDate.Format("02-Jan")
+	return ps.ToDate.Format("02-Jan")
 }
 
 func (ps PeriodSummary) PeriodName() string {
