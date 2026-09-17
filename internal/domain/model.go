@@ -21,9 +21,61 @@ type PeriodSummary struct {
 	DailyAvgConsom float64   `json:"daily_avg_consumption"`
 	HasSolar       bool      `json:"has_solar"`
 }
-
 type SystemOverview struct {
 	Records      []MeterRecord   `json:"records"`
 	Summaries    []PeriodSummary `json:"summaries"`
 	LastBaseline *MeterRecord    `json:"last_baseline"`
+}
+
+// Helper methods on PeriodSummary for easy template display without structural changes
+
+func (ps PeriodSummary) PeriodName() string {
+	return ps.FromDate.Format("02-Jan-2026") + " to " + ps.ToDate.Format("02-Jan-2006")
+}
+
+func (ps PeriodSummary) Import() float64 {
+	return ps.ImportDiff
+}
+
+func (ps PeriodSummary) Export() float64 {
+	return ps.ExportDiff
+}
+
+func (ps PeriodSummary) NetEnergy() float64 {
+	return ps.NetBalance
+}
+
+//
+//
+
+// TotalExport calculates total kWh exported across all period summaries.
+func (so SystemOverview) TotalExport() float64 {
+	var total float64
+	for _, s := range so.Summaries {
+		total += s.ExportDiff
+	}
+	return total
+}
+
+// TotalImport calculates total kWh imported across all period summaries.
+func (so SystemOverview) TotalImport() float64 {
+	var total float64
+	for _, s := range so.Summaries {
+		total += s.ImportDiff
+	}
+	return total
+}
+
+// TotalSolarGen calculates total kWh generated across all period summaries.
+func (so SystemOverview) TotalSolarGen() float64 {
+	var total float64
+	for _, s := range so.Summaries {
+		total += s.SolarGen
+	}
+	return total
+}
+
+// NetConsumption calculates total Net Balance (Total Export - Total Import).
+func (so SystemOverview) NetConsumption() float64 {
+	return so.TotalExport() - so.TotalImport()
 }
