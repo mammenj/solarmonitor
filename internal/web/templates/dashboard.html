@@ -42,12 +42,12 @@
         <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5 flex flex-col justify-between">
             <div>
                 <div class="text-[10px] sm:text-xs font-medium text-slate-400 uppercase tracking-wider">Total Net Balance</div>
-                <div class="text-xl sm:text-2xl font-bold text-slate-100 mt-1">
-                    {{ printf "%.2f" .Overview.NetConsumption }}
+                <div class="text-xl sm:text-2xl font-bold text-emerald-400 mt-1">
+                    +{{ printf "%.2f" .Overview.NetConsumption }}
                     <span class="text-xs sm:text-sm font-normal text-slate-400">kWh</span>
                 </div>
             </div>
-            <div class="text-[10px] sm:text-xs text-slate-500 mt-1">Net energy generation</div>
+            <div class="text-[10px] sm:text-xs text-emerald-500/80 mt-1">Net surplus to grid</div>
         </div>
 
         <!-- Total Solar Generated -->
@@ -76,6 +76,57 @@
 
     </div>
 
+    <!-- Inline Pure-Go SVG Energy Chart Container -->
+    <div class="bg-slate-900 border border-slate-800 rounded-lg p-4 shadow-lg shrink-0">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="text-xs sm:text-sm font-semibold text-slate-200">Energy Generation & Grid Balance Chart</h2>
+            <div class="flex items-center gap-4 text-xs">
+                <span class="flex items-center gap-1.5 text-slate-400"><span class="w-3 h-3 bg-amber-500 rounded-sm inline-block"></span> Solar</span>
+                <span class="flex items-center gap-1.5 text-slate-400"><span class="w-3 h-3 bg-emerald-500 rounded-sm inline-block"></span> Export</span>
+                <span class="flex items-center gap-1.5 text-slate-400"><span class="w-3 h-3 bg-red-500 rounded-sm inline-block"></span> Import</span>
+            </div>
+        </div>
+
+        <div class="w-full h-48 sm:h-56">
+            {{ if .Overview.Summaries }}
+            <svg viewBox="0 0 700 200" preserveAspectRatio="none" class="w-full h-full overflow-visible">
+                <!-- Dark Grid Lines -->
+                <line x1="40" y1="20" x2="680" y2="20" stroke="#1e293b" stroke-width="1" />
+                <line x1="40" y1="70" x2="680" y2="70" stroke="#1e293b" stroke-width="1" />
+                <line x1="40" y1="120" x2="680" y2="120" stroke="#1e293b" stroke-width="1" />
+                <line x1="40" y1="170" x2="680" y2="170" stroke="#334155" stroke-width="1.5" /> <!-- Baseline -->
+
+                <!-- Dynamic Bars -->
+                {{ range $i, $pt := .Overview.ChartData }}
+                    <!-- Calculate x-offset per period group -->
+                    {{ $x := add 60 (mul $i 120) }}
+
+                    <!-- Solar Gen Bar (Amber) -->
+                    {{ $solarH := mulf $pt.SolarGen 0.1 }}
+                    <rect x="{{ $x }}" y="{{ subf 170 $solarH }}" width="16" height="{{ $solarH }}" fill="#f59e0b" rx="2" />
+                    
+                    <!-- Export Bar (Emerald) -->
+                    {{ $exportH := mulf $pt.Export 0.1 }}
+                    <rect x="{{ add $x 18 }}" y="{{ subf 170 $exportH }}" width="16" height="{{ $exportH }}" fill="#10b981" rx="2" />
+
+                    <!-- Import Bar (Red) -->
+                    {{ $importH := mulf $pt.Import 0.1 }}
+                    <rect x="{{ add $x 36 }}" y="{{ subf 170 $importH }}" width="16" height="{{ $importH }}" fill="#ef4444" rx="2" />
+
+                    <!-- Axis Label -->
+                    <text x="{{ add $x 26 }}" y="188" fill="#64748b" font-size="9" font-family="sans-serif" text-anchor="middle">
+                        {{ $pt.Label }}
+                    </text>
+                {{ end }}
+            </svg>
+            {{ else }}
+            <div class="w-full h-full flex items-center justify-center text-slate-500 text-xs font-mono">
+                No chart data available. Log period entries to render graphics.
+            </div>
+            {{ end }}
+        </div>
+    </div>
+
     <!-- Main Historical Period Summaries Container -->
     <div class="bg-slate-900 border border-slate-800 rounded-lg p-4 flex-1 flex flex-col min-h-0 overflow-hidden">
         <h2 class="text-xs sm:text-sm font-semibold text-slate-200 mb-3 shrink-0">Period Summaries</h2>
@@ -99,7 +150,7 @@
                     </div>
                     <div>
                         <span class="text-slate-500 block text-[9px] font-sans">Net Difference</span>
-                        <span class="text-slate-200 font-bold">{{ printf "%.2f" .NetEnergy }} kWh</span>
+                        <span class="text-emerald-400 font-bold">+{{ printf "%.2f" .NetEnergy }} kWh</span>
                     </div>
                     <div>
                         <span class="text-slate-500 block text-[9px] font-sans">Home Consumed</span>
@@ -138,7 +189,7 @@
                         <td class="p-2.5 font-mono text-slate-400">{{ printf "%.0f" .Days }}</td>
                         <td class="p-2.5 text-red-400 font-mono">+{{ printf "%.2f" .Import }} kWh</td>
                         <td class="p-2.5 text-emerald-400 font-mono">+{{ printf "%.2f" .Export }} kWh</td>
-                        <td class="p-2.5 font-bold font-mono text-slate-200">{{ printf "%.2f" .NetEnergy }} kWh</td>
+                        <td class="p-2.5 font-bold font-mono text-emerald-400">+{{ printf "%.2f" .NetEnergy }} kWh</td>
                         <td class="p-2.5 font-bold font-mono text-cyan-400">
                             {{ printf "%.2f" .Consumption }} kWh 
                             <span class="text-slate-500 font-normal text-[10px] font-sans">({{ printf "%.2f" .DailyAvgConsom }} kWh/day)</span>

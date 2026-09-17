@@ -17,7 +17,11 @@ func InitTemplates() (*template.Template, error) {
 		"sub": func(a, b int) int {
 			return a - b
 		},
-		"add": func(a, b float64) float64 {
+		"subf": func(a, b float64) float64 {
+			return a - b
+		},
+
+		"add": func(a, b int) int {
 			return a + b
 		},
 		"formatDate": func(t time.Time) string {
@@ -32,6 +36,15 @@ func InitTemplates() (*template.Template, error) {
 		"todayDate": func() string {
 			return time.Now().Format("2006-01-02")
 		},
+		// Maps a value against a maximum scale to output SVG pixel heights
+		"scaleHeight": func(value, max, maxHeight float64) float64 {
+			if max == 0 {
+				return 0
+			}
+			return (value / max) * maxHeight
+		},
+		"mul":  func(a int, b int) int { return a * b },
+		"mulf": func(a, b float64) float64 { return a * b },
 	}
 
 	return template.New("base").Funcs(funcMap).ParseFS(templateFS, "templates/*.html")

@@ -1,6 +1,9 @@
 package domain
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type MeterRecord struct {
 	Date     time.Time `json:"date"`
@@ -29,8 +32,18 @@ type SystemOverview struct {
 
 // Helper methods on PeriodSummary for easy template display without structural changes
 
-func (ps PeriodSummary) PeriodName() string {
+func (ps PeriodSummary) PeriodName1() string {
 	return ps.FromDate.Format("02-Jan-2026") + " to " + ps.ToDate.Format("02-Jan-2006")
+}
+
+func (ps PeriodSummary) PeriodName() string {
+	// WRONG: ps.FromDate.Format("02-Jan-2016") or similar
+	// CORRECT: Must use "02-Jan-2006" as the standard reference layout
+	return fmt.Sprintf(
+		"%s to %s",
+		ps.FromDate.Format("02-Jan-2006"),
+		ps.ToDate.Format("02-Jan-2006"),
+	)
 }
 
 func (ps PeriodSummary) Import() float64 {
@@ -78,4 +91,27 @@ func (so SystemOverview) TotalSolarGen() float64 {
 // NetConsumption calculates total Net Balance (Total Export - Total Import).
 func (so SystemOverview) NetConsumption() float64 {
 	return so.TotalExport() - so.TotalImport()
+}
+
+// ChartPoint represents a single data point formatted for Chart.js / Alpine datasets
+type ChartPoint struct {
+	Label       string  `json:"label"`
+	SolarGen    float64 `json:"solar_gen"`
+	Export      float64 `json:"export"`
+	Import      float64 `json:"import"`
+	Consumption float64 `json:"consumption"`
+}
+
+func (so SystemOverview) ChartData() []ChartPoint {
+	points := make([]ChartPoint, 0, len(so.Summaries))
+	for _, s := range so.Summaries {
+		points = append(points, ChartPoint{
+			Label:       s.PeriodName(),
+			SolarGen:    s.SolarGen,
+			Export:      s.ExportDiff,
+			Import:      s.ImportDiff,
+			Consumption: s.Consumption,
+		})
+	}
+	return points
 }

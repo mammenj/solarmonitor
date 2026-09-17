@@ -7,9 +7,15 @@ import (
 
 func TestSystemOverview_Totals(t *testing.T) {
 	overview := SystemOverview{
-		Records: []MeterRecord{
-			{Date: time.Now(), SolarGen: 15.0, Export: 5.0, Import: 2.0},
-			{Date: time.Now(), SolarGen: 10.0, Export: 3.0, Import: 4.0},
+		Summaries: []PeriodSummary{
+			{
+				FromDate:    time.Date(2026, time.March, 1, 0, 0, 0, 0, time.UTC),
+				ToDate:      time.Date(2026, time.March, 15, 0, 0, 0, 0, time.UTC),
+				SolarGen:    25.0,
+				ExportDiff:  8.0,
+				ImportDiff:  6.0,
+				Consumption: 23.0,
+			},
 		},
 	}
 
@@ -28,60 +34,55 @@ func TestSystemOverview_Totals(t *testing.T) {
 }
 
 func TestPeriodSummary_TemplateGetters(t *testing.T) {
-	from := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
-	to := time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC)
-
-	ps := PeriodSummary{
-		FromDate:   from,
-		ToDate:     to,
-		ImportDiff: 12.5,
-		ExportDiff: 30.0,
-		NetBalance: 17.5,
+	summary := PeriodSummary{
+		FromDate: time.Date(2026, time.March, 1, 0, 0, 0, 0, time.UTC),
+		ToDate:   time.Date(2026, time.March, 15, 0, 0, 0, 0, time.UTC),
 	}
 
-	if got := ps.PeriodName(); got != "Mar 01 - Mar 15, 2026" {
-		t.Errorf("PeriodName() = %v, want 'Mar 01 - Mar 15, 2026'", got)
-	}
-	if got := ps.Import(); got != 12.5 {
-		t.Errorf("Import() = %v, want 12.5", got)
-	}
-	if got := ps.Export(); got != 30.0 {
-		t.Errorf("Export() = %v, want 30.0", got)
-	}
-	if got := ps.NetEnergy(); got != 17.5 {
-		t.Errorf("NetEnergy() = %v, want 17.5", got)
+	expected := "01-Mar-2026 to 15-Mar-2026"
+	if got := summary.PeriodName(); got != expected {
+		t.Errorf("PeriodName() = %q, want %q", got, expected)
 	}
 }
 
-func TestSystemOverview_TotalsFromSummaries(t *testing.T) {
+func TestSystemOverview_ChartData(t *testing.T) {
+	from := time.Date(2026, time.March, 1, 0, 0, 0, 0, time.UTC)
+	to := time.Date(2026, time.March, 15, 0, 0, 0, 0, time.UTC)
+
 	overview := SystemOverview{
 		Summaries: []PeriodSummary{
 			{
-				FromDate:    time.Now().AddDate(0, 0, -14),
-				ToDate:      time.Now().AddDate(0, 0, -7),
-				ImportDiff:  200.0,
-				ExportDiff:  800.0,
-				SolarGen:    1000.0,
-				Consumption: 400.0,
-			},
-			{
-				FromDate:    time.Now().AddDate(0, 0, -7),
-				ToDate:      time.Now(),
-				ImportDiff:  227.0,
-				ExportDiff:  564.0,
-				SolarGen:    800.0,
-				Consumption: 463.0,
+				FromDate:    from,
+				ToDate:      to,
+				SolarGen:    150.0,
+				ExportDiff:  80.0,
+				ImportDiff:  30.0,
+				Consumption: 100.0,
 			},
 		},
 	}
 
-	if got := overview.TotalImport(); got != 427.0 {
-		t.Errorf("TotalImport() = %v, want 427.0", got)
+	chartPoints := overview.ChartData()
+
+	if len(chartPoints) != 1 {
+		t.Fatalf("ChartData() returned %d points, want 1", len(chartPoints))
 	}
-	if got := overview.TotalExport(); got != 1364.0 {
-		t.Errorf("TotalExport() = %v, want 1364.0", got)
+
+	pt := chartPoints[0]
+	expectedLabel := "01-Mar-2026 to 15-Mar-2026"
+	if pt.Label != expectedLabel {
+		t.Errorf("Label = %q, want %q", pt.Label, expectedLabel)
 	}
-	if got := overview.NetConsumption(); got != 937.0 { // 1364 - 427
-		t.Errorf("NetConsumption() = %v, want 937.0", got)
+	if pt.SolarGen != 150.0 {
+		t.Errorf("SolarGen = %v, want 150.0", pt.SolarGen)
+	}
+	if pt.Export != 80.0 {
+		t.Errorf("Export = %v, want 80.0", pt.Export)
+	}
+	if pt.Import != 30.0 {
+		t.Errorf("Import = %v, want 30.0", pt.Import)
+	}
+	if pt.Consumption != 100.0 {
+		t.Errorf("Consumption = %v, want 100.0", pt.Consumption)
 	}
 }
