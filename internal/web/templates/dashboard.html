@@ -2,7 +2,7 @@
 <div class="min-h-0 flex-1 flex flex-col gap-4">
     <!-- Top Metric Cards Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 shrink-0">
-        
+
         <!-- Total Readings Count -->
         <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5 flex flex-col justify-between">
             <div>
@@ -76,7 +76,7 @@
 
     </div>
 
-    
+
     <!-- Main Historical Period Summaries Container -->
     <div class="bg-slate-900 border border-slate-800 rounded-lg p-4 flex-1 flex flex-col min-h-0 overflow-hidden">
         <h2 class="text-xs sm:text-sm font-semibold text-slate-200 mb-3 shrink-0">Period Summaries</h2>
@@ -142,7 +142,7 @@
                         <td class="p-2.5 text-emerald-400 font-mono">+{{ printf "%.2f" .Export }} kWh</td>
                         <td class="p-2.5 font-bold font-mono text-emerald-400">+{{ printf "%.2f" .NetEnergy }} kWh</td>
                         <td class="p-2.5 font-bold font-mono text-cyan-400">
-                            {{ printf "%.2f" .Consumption }} kWh 
+                            {{ printf "%.2f" .Consumption }} kWh
                             <span class="text-slate-500 font-normal text-[10px] font-sans">({{ printf "%.2f" .DailyAvgConsom }} kWh/day)</span>
                         </td>
                     </tr>
@@ -158,132 +158,223 @@
         </div>
 
     </div>
-    <div x-data="energyChartComponent({{ marshalJSON .Overview.ChartData }})"
-         class="bg-slate-900 border border-slate-800 rounded-lg p-4 shadow-lg shrink-0">
-        
-          <div class="flex items-center justify-between mb-3">
-            <h2 class="text-xs sm:text-sm font-semibold text-slate-200">Energy Flow & Grid Balance</h2>
-            
-            <!-- Range Filter / Control inside Alpine -->
-            <div class="flex items-center gap-2">
-                <span class="text-[10px] text-slate-400 font-mono">View Recent:</span>
-                <select x-model="limit" @change="updateChart()" class="bg-slate-800 text-slate-200 border border-slate-700 rounded px-2 py-0.5 text-xs font-mono focus:outline-none">
-                    <option value="6">6 Periods</option>
-                    <option value="12" selected>12 Periods</option>
-                    <option value="24">24 Periods</option>
-                    <option value="0">All Data</option>
-                </select>
-            </div>
-          </div>
 
-        <!-- Canvas Target for Chart.js -->
-          <div class="w-full h-56 sm:h-64 relative">
-            <canvas x-ref="chartCanvas"></canvas>
-          </div>
+    <div x-data="efficiencyChartComponent({{ marshalJSON .Overview.ChartData }})"
+         class="bg-slate-900 border border-slate-800/80 rounded-xl p-5 shadow-2xl">
+
+        <!-- Header Controls -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div>
+                <h2 class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Solar Efficiency & Coverage</h2>
+                <p class="text-[11px] text-slate-500 mt-0.5">Generation vs. home demand with coverage overlay</p>
+            </div>
+
+            <!-- Controls & Range Selector -->
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg p-1">
+                    <span class="text-[10px] text-slate-500 px-1 font-mono uppercase">View:</span>
+                    <template x-for="count in [6, 12, 24, 'all']" :key="count">
+                        <button @click="setLimit(count)"
+                                :class="limit === count ? 'bg-slate-800 text-amber-400 font-semibold' : 'text-slate-400 hover:text-slate-200'"
+                                class="px-2 py-0.5 text-[10px] font-mono rounded transition-colors"
+                                x-text="count === 'all' ? 'ALL' : count + 'P'">
+                        </button>
+                    </template>
+                </div>
+
+                <span class="inline-flex items-center gap-1.5 text-[10px] font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-800/50 px-2.5 py-1 rounded-full">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Dual-Axis Performance
+                </span>
+            </div>
+        </div>
+
+        <!-- Canvas Container -->
+        <div class="w-full h-64 sm:h-72 relative">
+            <canvas x-ref="efficiencyCanvas"class="pointer-events-auto"></canvas>
+        </div>
     </div>
 
+    <script>
+    function efficiencyChartComponent(rawChartData) {
+        return {
+            allPoints: rawChartData || [],
+            limit: 12,
+            chartInstance: null,
 
-</div>
-<!-- Alpine Component Definition -->
-<script>
-function energyChartComponent(rawChartData) {
-    return {
-        rawPoints: rawChartData || [],
-        limit: 12,
-        chartInstance: null,
+            init() {
+                if (!this.allPoints.length) return;
+                // Use $nextTick to guarantee the DOM/Canvas is rendered before Chart.js attaches
+                this.$nextTick(() => {
+                    this.renderChart();
+                });
+            },
 
-        init() {
-            this.renderChart();
-        },
+            setLimit(newLimit) {
+                this.limit = newLimit;
+                this.updateChartData();
+            },
 
-        getFilteredData() {
-            if (!this.rawPoints.length) return [];
-            const lim = parseInt(this.limit, 10);
-            if (lim === 0 || this.rawPoints.length <= lim) {
-                return this.rawPoints;
-            }
-            return this.rawPoints.slice(-lim);
-        },
+            get visiblePoints() {
+                if (this.limit === 'all' || this.allPoints.length <= this.limit) {
+                    return this.allPoints;
+                }
+                return this.allPoints.slice(-this.limit);
+            },
 
-        renderChart() {
-            const dataPoints = this.getFilteredData();
-            const ctx = this.$refs.chartCanvas.getContext('2d');
+            updateChartData() {
+                if (!this.chartInstance) return;
 
-            if (this.chartInstance) {
-                this.chartInstance.destroy();
-            }
+                const points = this.visiblePoints;
+                this.chartInstance.data.labels = points.map(p => p.label);
+                this.chartInstance.data.datasets[0].data = points.map(p => p.solar_gen);
+                this.chartInstance.data.datasets[1].data = points.map(p => p.consumption);
+                this.chartInstance.data.datasets[2].data = points.map(p => p.self_sufficiency_pct);
 
-            this.chartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: dataPoints.map(p => p.label),
-                    datasets: [
-                        {
-                            label: 'Solar Gen (kWh)',
-                            data: dataPoints.map(p => p.solar_gen),
-                            backgroundColor: '#f59e0b',
-                            borderRadius: 4,
-                            barPercentage: 0.7,
-                            categoryPercentage: 0.6
+                this.chartInstance.update();
+            },
+
+            renderChart() {
+                const canvas = this.$refs.efficiencyCanvas;
+                if (!canvas) return;
+
+                const ctx = canvas.getContext('2d');
+
+                const solarGradient = ctx.createLinearGradient(0, 0, 0, 250);
+                solarGradient.addColorStop(0, 'rgba(245, 158, 11, 0.85)');
+                solarGradient.addColorStop(1, 'rgba(245, 158, 11, 0.2)');
+
+                const consGradient = ctx.createLinearGradient(0, 0, 0, 250);
+                consGradient.addColorStop(0, 'rgba(6, 182, 212, 0.85)');
+                consGradient.addColorStop(1, 'rgba(6, 182, 212, 0.2)');
+
+                const initialPoints = this.visiblePoints;
+
+                this.chartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: initialPoints.map(p => p.label),
+                        datasets: [
+                            {
+                                type: 'bar',
+                                label: 'Solar Gen (kWh)',
+                                data: initialPoints.map(p => p.solar_gen),
+                                backgroundColor: solarGradient,
+                                borderColor: '#f59e0c',
+                                borderWidth: 1,
+                                borderRadius: 6,
+                                borderSkipped: false,
+                                barPercentage: 0.6,
+                                categoryPercentage: 0.5,
+                                yAxisID: 'y'
+                            },
+                            {
+                                type: 'bar',
+                                label: 'Home Consumed (kWh)',
+                                data: initialPoints.map(p => p.consumption),
+                                backgroundColor: consGradient,
+                                borderColor: '#06b6d4',
+                                borderWidth: 1,
+                                borderRadius: 6,
+                                borderSkipped: false,
+                                barPercentage: 0.6,
+                                categoryPercentage: 0.5,
+                                yAxisID: 'y'
+                            },
+                            {
+                                type: 'line',
+                                label: 'Self-Sufficiency (%)',
+                                data: initialPoints.map(p => p.self_sufficiency_pct),
+                                borderColor: '#10b981',
+                                backgroundColor: '#10b981',
+                                borderWidth: 2.5,
+                                pointRadius: 4,
+                                pointHoverRadius: 6,
+                                pointBackgroundColor: '#0f172a',
+                                pointBorderColor: '#10b981',
+                                pointBorderWidth: 2,
+                                tension: 0.35,
+                                yAxisID: 'y1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        events: ['mousemove', 'mouseout', 'click', 'touchstart', 'touchmove'],
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
                         },
-                        {
-                            label: 'Export (kWh)',
-                            data: dataPoints.map(p => p.export),
-                            backgroundColor: '#10b981',
-                            borderRadius: 4,
-                            barPercentage: 0.7,
-                            categoryPercentage: 0.6
-                        },
-                        {
-                            label: 'Import (kWh)',
-                            data: dataPoints.map(p => p.import),
-                            backgroundColor: '#ef4444',
-                            borderRadius: 4,
-                            barPercentage: 0.7,
-                            categoryPercentage: 0.6
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: '#94a3b8',
-                                font: { size: 11, family: 'sans-serif' },
-                                boxWidth: 12
+                        plugins: {
+                            tooltip: {
+                                enabled: true,
+                                backgroundColor: '#0f172a',
+                                titleColor: '#f8fafc',
+                                bodyColor: '#cbd5e1',
+                                borderColor: '#334155',
+                                borderWidth: 1,
+                                padding: 12,
+                                cornerRadius: 8,
+                                boxPadding: 4,
+                                usePointStyle: true,
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) label += ': ';
+                                        if (context.dataset.type === 'line') {
+                                            return label + context.parsed.y.toFixed(1) + '%';
+                                        }
+                                        return label + context.parsed.y.toFixed(2) + ' kWh';
+                                    }
+                                }
                             }
                         },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                            backgroundColor: '#0f172a',
-                            titleColor: '#f8fafc',
-                            bodyColor: '#cbd5e1',
-                            borderColor: '#334155',
-                            borderWidth: 1
-                        }
-                    },
-                    scales: {
-                        x: {
-                            ticks: { color: '#64748b', font: { size: 10 } },
-                            grid: { color: '#1e293b' }
-                        },
-                        y: {
-                            ticks: { color: '#64748b', font: { size: 10 } },
-                            grid: { color: '#1e293b' }
+                        scales: {
+                            x: {
+                                ticks: {
+                                    color: '#64748b',
+                                    font: { size: 10, family: 'monospace' },
+                                    maxRotation: 0
+                                },
+                                grid: { display: false }
+                            },
+                            y: {
+                                type: 'linear',
+                                position: 'left',
+                                ticks: {
+                                    color: '#64748b',
+                                    font: { size: 10, family: 'monospace' },
+                                    callback: val => val + ' kWh'
+                                },
+                                grid: { color: 'rgba(30, 41, 59, 0.6)' },
+                                border: { dash: [4, 4] }
+                            },
+                            y1: {
+                                type: 'linear',
+                                position: 'right',
+                                min: 0,
+                                max: 100,
+                                ticks: {
+                                    color: '#10b981',
+                                    font: { size: 10, family: 'monospace' },
+                                    callback: val => val + '%'
+                                },
+                                title: {
+                                    display: true,
+                                    text: '%',
+                                    color: '#10b981',
+                                    font: { size: 11, family: 'monospace', weight: 'bold' }
+                                },
+                                grid: { drawOnChartArea: false },
+                                border: { dash: [4, 4] }
+                            }
                         }
                     }
-                }
-            });
-        },
-
-        updateChart() {
-            this.renderChart();
-        }
-    };
-}
-</script>
+                });
+            }
+        };
+    }
+    </script>>
 
 {{ end }}

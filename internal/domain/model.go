@@ -58,9 +58,6 @@ func (ps PeriodSummary) NetEnergy() float64 {
 	return ps.NetBalance
 }
 
-//
-//
-
 // TotalExport calculates total kWh exported across all period summaries.
 func (so SystemOverview) TotalExport() float64 {
 	var total float64
@@ -93,25 +90,53 @@ func (so SystemOverview) NetConsumption() float64 {
 	return so.TotalExport() - so.TotalImport()
 }
 
-// ChartPoint represents a single data point formatted for Chart.js / Alpine datasets
-type ChartPoint struct {
-	Label       string  `json:"label"`
-	SolarGen    float64 `json:"solar_gen"`
-	Export      float64 `json:"export"`
-	Import      float64 `json:"import"`
-	Consumption float64 `json:"consumption"`
-}
-
 func (so SystemOverview) ChartData() []ChartPoint {
 	points := make([]ChartPoint, 0, len(so.Summaries))
 	for _, s := range so.Summaries {
 		points = append(points, ChartPoint{
-			Label:       s.PeriodLabel(),
-			SolarGen:    s.SolarGen,
-			Export:      s.ExportDiff,
-			Import:      s.ImportDiff,
-			Consumption: s.Consumption,
+			Label:           s.PeriodLabel(),
+			SolarGen:        s.SolarGen,
+			Export:          s.ExportDiff,
+			Import:          s.ImportDiff,
+			Consumption:     s.Consumption,
+			SelfConsumption: s.SelfConsumptionRatio(),
+			SelfSufficiency: s.SelfSufficiencyRatio(),
 		})
 	}
 	return points
+}
+
+func (ps PeriodSummary) SelfConsumptionRatio() float64 {
+	if ps.SolarGen <= 0 {
+		return 0
+	}
+	selfConsumed := ps.SolarGen - ps.Export()
+	if selfConsumed < 0 {
+		selfConsumed = 0
+	}
+	return (selfConsumed / ps.SolarGen) * 100
+}
+
+// SelfSufficiencyRatio returns the % of home consumption covered by solar (0 - 100%).
+func (ps PeriodSummary) SelfSufficiencyRatio() float64 {
+	if ps.Consumption <= 0 {
+		return 0
+	}
+	solarCovered := ps.Consumption - ps.Import()
+	if solarCovered < 0 {
+		solarCovered = 0
+	}
+	return (solarCovered / ps.Consumption) * 100
+}
+
+// ChartPoint represents a single data point formatted for Chart.js / Alpine datasets
+
+type ChartPoint struct {
+	Label           string  `json:"label"`
+	SolarGen        float64 `json:"solar_gen"`
+	Export          float64 `json:"export"`
+	Import          float64 `json:"import"`
+	Consumption     float64 `json:"consumption"`
+	SelfConsumption float64 `json:"self_consumption_pct"`
+	SelfSufficiency float64 `json:"self_sufficiency_pct"`
 }
