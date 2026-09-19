@@ -41,7 +41,7 @@ func (ps PeriodSummary) PeriodName() string {
 	// CORRECT: Must use "02-Jan-2006" as the standard reference layout
 	return fmt.Sprintf(
 		"%s to %s",
-		ps.FromDate.Format("02-Jan-2006"),
+		ps.FromDate.AddDate(0, 0, 1).Format("02-Jan-2006"),
 		ps.ToDate.Format("02-Jan-2006"),
 	)
 }
