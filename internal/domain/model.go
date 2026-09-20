@@ -58,6 +58,18 @@ func (ps PeriodSummary) NetEnergy() float64 {
 	return ps.NetBalance
 }
 
+func (so SystemOverview) TotalHomeConsumption() float64 {
+	var totalGen, totalExport, totalImport float64
+
+	for _, s := range so.Summaries {
+		totalGen += s.SolarGen
+		totalExport += s.ExportDiff
+		totalImport += s.ImportDiff
+	}
+
+	return totalGen + totalImport - totalExport
+}
+
 // TotalExport calculates total kWh exported across all period summaries.
 func (so SystemOverview) TotalExport() float64 {
 	var total float64

@@ -80,6 +80,7 @@ func (s *SolarService) CalculateSummaries(records []MeterRecord) []PeriodSummary
 		days := curr.Date.Sub(prev.Date).Hours() / 24
 		impDiff := curr.Import - prev.Import
 		expDiff := curr.Export - prev.Export
+		solarGenDiff := curr.SolarGen - prev.SolarGen
 		net := expDiff - impDiff
 
 		summary := PeriodSummary{
@@ -89,12 +90,12 @@ func (s *SolarService) CalculateSummaries(records []MeterRecord) []PeriodSummary
 			ImportDiff: impDiff,
 			ExportDiff: expDiff,
 			NetBalance: net,
-			SolarGen:   curr.SolarGen,
+			SolarGen:   solarGenDiff,
 		}
 
 		if curr.SolarGen > 0 {
 			summary.HasSolar = true
-			summary.Consumption = (curr.SolarGen + impDiff) - expDiff
+			summary.Consumption = (solarGenDiff + impDiff) - expDiff
 			if days > 0 {
 				summary.DailyAvgConsom = summary.Consumption / days
 			}
