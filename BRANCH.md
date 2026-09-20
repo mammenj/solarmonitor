@@ -1,4 +1,4 @@
 Branch Purpose
 
-1. Refactor dashboard #check
-2. Prepare for Chart #check
+1. Change the solar gen as current total produced
+   System will calculate the difference
