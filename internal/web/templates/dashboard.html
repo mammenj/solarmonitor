@@ -256,7 +256,23 @@ function energyChartComponent(rawChartData) {
                             pointBorderWidth: 2,
                             tension: 0.35,
                             yAxisID: 'y1'
-                            }
+                        },
+                        {
+                            type: 'line',
+                            label: 'Self-Consumption (%)',
+                            data: dataPoints.map(p => p.self_consumption_pct),
+                            borderColor: '#F5E027',
+                            backgroundColor: '#10b000',
+                            borderWidth: 2.5,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: '#F5E027',
+                            pointBorderColor: '#10b000',
+                            pointBorderWidth: 2,
+                            tension: 0.35,
+                            yAxisID: 'y1'
+                        }
+
                     ]
                 },
                 options: {
@@ -301,7 +317,6 @@ function energyChartComponent(rawChartData) {
                                 },
                                 title: {
                                     display: true,
-                                    text: '%',
                                     color: '#10b981',
                                     font: { size: 11, family: 'monospace', weight: 'bold' }
                                 },
