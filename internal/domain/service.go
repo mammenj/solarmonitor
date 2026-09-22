@@ -3,7 +3,6 @@ package domain
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sort"
 )
 
@@ -45,25 +44,6 @@ func (s *SolarService) GetOverview(ctx context.Context) (SystemOverview, error) 
 }
 
 func (s *SolarService) AddReading(ctx context.Context, rec MeterRecord) error {
-	existing, err := s.repo.GetAll(ctx)
-	if err != nil {
-		return err
-	}
-
-	if len(existing) > 0 {
-		sort.Slice(existing, func(i, j int) bool {
-			return existing[i].Date.Before(existing[j].Date)
-		})
-		last := existing[len(existing)-1]
-
-		if !rec.Date.After(last.Date) {
-			return fmt.Errorf("%w (%s <= %s)", ErrOutofOrderDate, rec.Date.Format("2006-01-02"), last.Date.Format("2006-01-02"))
-		}
-		if rec.Import < last.Import || rec.Export < last.Export {
-			return ErrInvalidReading
-		}
-	}
-
 	return s.repo.Save(ctx, rec)
 }
 
