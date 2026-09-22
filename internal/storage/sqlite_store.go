@@ -19,7 +19,7 @@ type SQLiteStore struct {
 
 func NewSQLiteStore(dbPath string) (*SQLiteStore, error) {
 	if dbPath == "" {
-		dbPath = "solar_readings.db"
+		dbPath = "meter_readings.db"
 	}
 
 	dir := filepath.Dir(dbPath)
