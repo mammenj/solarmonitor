@@ -5,14 +5,17 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
-
 	"solarmonitor/internal/domain"
 	"solarmonitor/internal/storage"
 	"solarmonitor/internal/web"
 )
 
 func main() {
-	repo := storage.NewFileStore("solar_readings.txt")
+	// repo1 := storage.NewFileStore("solar_readings.txt")
+	repo, err := storage.NewSQLiteStore("solar_readings.db")
+	if err != nil {
+		log.Fatalf("DB init error: %v", err)
+	}
 	service := domain.NewSolarService(repo)
 
 	tmpl, err := web.InitTemplates()
