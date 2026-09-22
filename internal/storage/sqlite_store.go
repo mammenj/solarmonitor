@@ -7,8 +7,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"solarmonitor/internal/domain"
 	"time"
+
+	"solarmonitor/internal/domain"
 
 	_ "modernc.org/sqlite"
 )
@@ -19,7 +20,7 @@ type SQLiteStore struct {
 
 func NewSQLiteStore(dbPath string) (*SQLiteStore, error) {
 	if dbPath == "" {
-		dbPath = "meter_readings.db"
+		dbPath = "meter_log.db"
 	}
 
 	dir := filepath.Dir(dbPath)
@@ -51,10 +52,11 @@ func NewSQLiteStore(dbPath string) (*SQLiteStore, error) {
 func (s *SQLiteStore) init() error {
 	_, err := s.db.Exec(`
         CREATE TABLE IF NOT EXISTS meter_records (
-            date TEXT NOT NULL PRIMARY KEY,
+						id INTEGER PRIMARY KEY,
+						date TEXT NOT NULL UNIQUE,
             import REAL NOT NULL,
             export REAL NOT NULL,
-            solar_gen REAL NOT NULL DEFAULT 0
+            solar_gen REAL NOT NULL
         );
     `)
 	return err
