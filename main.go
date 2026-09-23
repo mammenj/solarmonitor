@@ -13,7 +13,7 @@ import (
 
 func main() {
 	// repo1 := storage.NewFileStore("solar_readings.txt")
-	repo, err := storage.NewSQLiteStore("meter_log.db")
+	repo, err := storage.NewSQLiteStore("meter_logs.db")
 	if err != nil {
 		log.Fatalf("DB init error: %v", err)
 	}

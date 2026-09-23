@@ -56,7 +56,8 @@ func (s *SQLiteStore) init() error {
 						date TEXT NOT NULL UNIQUE,
             import REAL NOT NULL,
             export REAL NOT NULL,
-            solar_gen REAL NOT NULL
+            solar_gen REAL NOT NULL,
+						addedon TEXT NOT NULL
         );
     `)
 	return err
@@ -73,7 +74,7 @@ func (s *SQLiteStore) Close() error {
 func (s *SQLiteStore) GetAll(ctx context.Context) ([]domain.MeterRecord, error) {
 	log.Println("...GetAll DB")
 	rows, err := s.db.QueryContext(ctx, `
-        SELECT date, import, export, solar_gen
+        SELECT date, import, export, solar_gen,addedon
         FROM meter_records
         ORDER BY date ASC
     `)
@@ -84,14 +85,15 @@ func (s *SQLiteStore) GetAll(ctx context.Context) ([]domain.MeterRecord, error) 
 
 	records := make([]domain.MeterRecord, 0)
 	for rows.Next() {
-		var dateStr string
+		var dateStr, addedDateStr string
 		var importValue, exportValue, solarGen float64
 
-		if err := rows.Scan(&dateStr, &importValue, &exportValue, &solarGen); err != nil {
+		if err := rows.Scan(&dateStr, &importValue, &exportValue, &solarGen, &addedDateStr); err != nil {
 			return nil, err
 		}
 
 		parsedDate, err := time.Parse("2006-01-02", dateStr)
+		parsedAddedDate, err := time.Parse("2006-01-02", addedDateStr)
 		if err != nil {
 			return nil, fmt.Errorf("parse meter date %q: %w", dateStr, err)
 		}
@@ -101,6 +103,7 @@ func (s *SQLiteStore) GetAll(ctx context.Context) ([]domain.MeterRecord, error) 
 			Import:   importValue,
 			Export:   exportValue,
 			SolarGen: solarGen,
+			AddedOn:  parsedAddedDate,
 		})
 	}
 
@@ -118,20 +121,24 @@ func (s *SQLiteStore) Save(ctx context.Context, record domain.MeterRecord) error
 		return fmt.Errorf("meter record date cannot be zero")
 	}
 
+	now := time.Now()
+	record.AddedOn = now
 	_, err := s.db.ExecContext(
 		ctx,
 		`
-            INSERT INTO meter_records (date, import, export, solar_gen)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO meter_records (date, import, export, solar_gen,addedon)
+            VALUES (?, ?, ?, ?, ?)
             ON CONFLICT(date) DO UPDATE SET
                 import = excluded.import,
                 export = excluded.export,
-                solar_gen = excluded.solar_gen
+                solar_gen = excluded.solar_gen,
+								addedon = excluded.addedon 
         `,
 		record.Date.Format("2006-01-02"),
 		record.Import,
 		record.Export,
 		record.SolarGen,
+		record.AddedOn.Format("2006-01-02"),
 	)
 	return err
 }
