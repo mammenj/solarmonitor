@@ -7,9 +7,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"time"
-
 	"solarmonitor/internal/domain"
+	"time"
 
 	_ "modernc.org/sqlite"
 )
@@ -195,7 +194,8 @@ func (s *SQLiteStore) Save(ctx context.Context, record domain.MeterRecord) error
 	log.Println("Last record is %v", last_record)
 
 	now := time.Now()
-	record.AddedOn = now
+	location, _ := time.LoadLocation("Asia/Kolkata")
+	record.AddedOn = now.In(location)
 
 	if record.Import < last_record.Import {
 		return fmt.Errorf("Cannot be less than to the last IMPORT")
