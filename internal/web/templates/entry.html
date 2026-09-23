@@ -121,7 +121,7 @@
       >
         <div>
           <div class="text-slate-200 font-medium mb-1">
-            {{ formatDate .Date }} ({{formatDate .AddedOn}})
+            {{ formatDate .Date }} ({{formatDateTime .AddedOn}})
           </div>
                      <div class="text-[10px] text-amber-400 font-mono">
             Gen: {{ printf "%.2f" .SolarGen }} kWh
@@ -160,7 +160,7 @@
           {{ range .Overview.Records }}
           <tr class="hover:bg-slate-800/30 transition-colors">
             <td class="p-3 font-medium text-slate-200">
-              {{ formatDate .Date }} ({{formatDate .AddedOn}})
+              {{ formatDate .Date }} ({{formatDateTime .AddedOn}})
           </div>
 
             </td>

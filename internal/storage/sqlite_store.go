@@ -20,7 +20,7 @@ type SQLiteStore struct {
 
 func NewSQLiteStore(dbPath string) (*SQLiteStore, error) {
 	if dbPath == "" {
-		dbPath = "meter_log.db"
+		return nil, fmt.Errorf("No database file found...")
 	}
 
 	dir := filepath.Dir(dbPath)
@@ -57,7 +57,7 @@ func (s *SQLiteStore) init() error {
             import REAL NOT NULL,
             export REAL NOT NULL,
             solar_gen REAL NOT NULL,
-						addedon TEXT NOT NULL
+						addedon TEXT DEFAULT CURRENT_TIMESTAMP 
         );
     `)
 	return err
@@ -93,7 +93,7 @@ func (s *SQLiteStore) GetAll(ctx context.Context) ([]domain.MeterRecord, error) 
 		}
 
 		parsedDate, err := time.Parse("2006-01-02", dateStr)
-		parsedAddedDate, err := time.Parse("2006-01-02", addedDateStr)
+		parsedAddedDate, err := time.Parse("2006-01-02 15:04", addedDateStr)
 		if err != nil {
 			return nil, fmt.Errorf("parse meter date %q: %w", dateStr, err)
 		}
@@ -138,7 +138,7 @@ func (s *SQLiteStore) Save(ctx context.Context, record domain.MeterRecord) error
 		record.Import,
 		record.Export,
 		record.SolarGen,
-		record.AddedOn.Format("2006-01-02"),
+		record.AddedOn.Format("2006-01-02 15:04"),
 	)
 	return err
 }

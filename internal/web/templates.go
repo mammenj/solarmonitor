@@ -27,7 +27,10 @@ func InitTemplates() (*template.Template, error) {
 		},
 		"formatDate": func(t time.Time) string {
 			return t.Format("02-Jan-2006")
+		}, "formatDateTime": func(t time.Time) string {
+			return t.Format("02-Jan-2006 15:04")
 		},
+
 		"formatShortDate": func(t time.Time) string {
 			return t.Format("02/01/06")
 		},
