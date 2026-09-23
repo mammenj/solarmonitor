@@ -10,6 +10,7 @@ type MeterRecord struct {
 	Import   float64   `json:"import"`
 	Export   float64   `json:"export"`
 	SolarGen float64   `json:"solar_gen"`
+	AddedOn  time.Time `json:"added_on"`
 }
 
 type PeriodSummary struct {
