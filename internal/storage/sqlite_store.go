@@ -15,10 +15,11 @@ import (
 )
 
 type SQLiteStore struct {
-	db *sql.DB
+	db    *sql.DB
+	cache *Cache[string, domain.MeterRecord]
 }
 
-func NewSQLiteStore(dbPath string) (*SQLiteStore, error) {
+func NewSQLiteStore(dbPath string, cache *Cache[string, domain.MeterRecord]) (*SQLiteStore, error) {
 	log.Println("...new DB:: ", dbPath)
 	if dbPath == "" {
 		return nil, fmt.Errorf("No database file found...")
@@ -41,7 +42,7 @@ func NewSQLiteStore(dbPath string) (*SQLiteStore, error) {
 		return nil, fmt.Errorf("ping sqlite database: %w", err)
 	}
 
-	store := &SQLiteStore{db: db}
+	store := &SQLiteStore{db: db, cache: cache}
 	if err := store.init(); err != nil {
 		_ = db.Close()
 		return nil, fmt.Errorf("initialize sqlite schema: %w", err)
@@ -74,7 +75,23 @@ func (s *SQLiteStore) Close() error {
 }
 
 func (s *SQLiteStore) GetAll(ctx context.Context) ([]domain.MeterRecord, error) {
-	log.Println("...GetAll DB")
+	log.Println("...GetAll from Cache")
+	////
+	records := make([]domain.MeterRecord, 0)
+
+	log.Println("Cache trying ....")
+	itmes := s.cache.Items()
+	if len(itmes) > 0 {
+		log.Println("foundcache..........")
+		for _, value := range itmes {
+			records = append(records, value)
+		}
+		return records, nil
+	}
+
+	/// missed cache
+
+	log.Println("Missed cached or 0 items, Going to DB now")
 	rows, err := s.db.QueryContext(ctx, `
         SELECT date, import, export, solar_gen,addedon
         FROM meter_records
@@ -85,7 +102,7 @@ func (s *SQLiteStore) GetAll(ctx context.Context) ([]domain.MeterRecord, error) 
 	}
 	defer rows.Close()
 
-	records := make([]domain.MeterRecord, 0)
+	//records := make([]domain.MeterRecord, 0)
 	for rows.Next() {
 		var dateStr, addedDateStr string
 		var importValue, exportValue, solarGen float64
@@ -98,14 +115,15 @@ func (s *SQLiteStore) GetAll(ctx context.Context) ([]domain.MeterRecord, error) 
 		if err != nil {
 			return nil, fmt.Errorf("parse meter date %q: %w", dateStr, err)
 		}
-
-		records = append(records, domain.MeterRecord{
+		record := domain.MeterRecord{
 			Date:     parsedDate,
 			Import:   importValue,
 			Export:   exportValue,
 			SolarGen: solarGen,
 			AddedOn:  parsedAddedDate,
-		})
+		}
+		records = append(records, record)
+		s.cache.Set(dateStr, record)
 	}
 
 	if err := rows.Err(); err != nil {
