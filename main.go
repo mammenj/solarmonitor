@@ -19,7 +19,12 @@ import (
 
 func main() {
 	dbname := "meter_logs.db"
+	if len(os.Args) == 2 {
+		dbname = os.Args[1]
+	}
 	//dbname := "test.db"
+	log.Println("Db arg ", dbname)
+
 	repo, err := storage.NewSQLiteStore(dbname + "?_timelayout=2006-01-02%2015:04")
 	if err != nil {
 		log.Fatalf("DB init error: %v", err)
