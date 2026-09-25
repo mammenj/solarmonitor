@@ -79,10 +79,10 @@ func (s *SQLiteStore) GetAll(ctx context.Context) ([]domain.MeterRecord, error) 
 	////
 	records := make([]domain.MeterRecord, 0)
 
-	log.Println("Cache trying ....")
+	log.Println("Trying Cache ....")
 	itmes := s.cache.Items()
 	if len(itmes) > 0 {
-		log.Println("foundcache..........")
+		log.Println("found cache.........# cache", len(itmes))
 		for _, value := range itmes {
 			records = append(records, value)
 		}
@@ -196,6 +196,23 @@ func (s *SQLiteStore) getLastRecordV2(ctx context.Context) (domain.MeterRecord, 
 	var last_record domain.MeterRecord
 	var dateStr string
 	var addedDateStr string
+	//// geting from cache
+
+	var latestDate string
+	for dateKey := range s.cache.Items() {
+		// Standard alphanumeric string comparison works perfectly for YYYY-MM-DD
+		if latestDate == "" || dateKey > latestDate {
+			latestDate = dateKey
+		}
+	}
+
+	last_record = s.cache.Get(latestDate)
+	log.Println("Got last record from cache for ::", latestDate)
+	if latestDate != "" {
+		return last_record, nil
+	}
+	//
+	log.Println("Going to DB for last_record")
 	err := s.db.QueryRow(
 		"SELECT date, import, export, solar_gen,addedon FROM meter_records ORDER BY id DESC LIMIT 1",
 	).Scan(
@@ -253,5 +270,7 @@ func (s *SQLiteStore) Save(ctx context.Context, record domain.MeterRecord) error
 		record.SolarGen,
 		record.AddedOn.Format("2006-01-02 15:04"),
 	)
+	log.Println("Setting cache for ::", record)
+	s.cache.Set(record.Date.Format("2006-01-02"), record)
 	return err
 }

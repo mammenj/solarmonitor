@@ -24,6 +24,14 @@ func (c *Cache[K, V]) Set(key K, value V) {
 	c.items[key] = value
 }
 
+// Get a key-value pair in the cache.
+func (c *Cache[K, V]) Get(key K) V {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	value := c.items[key]
+	return value
+}
+
 // Items returns a shallow copy of all elements stored in the cache.
 func (c *Cache[K, V]) Items() map[K]V {
 	// 1. Acquire a Read Lock to allow multiple parallel reads but block writes
