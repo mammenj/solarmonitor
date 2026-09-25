@@ -1,4 +1,3 @@
 Branch Purpose
 
-1. Change the solar gen as current total produced
-   System will calculate the difference
+1. Implement a simple cache
