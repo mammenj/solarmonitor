@@ -7,8 +7,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"solarmonitor/internal/domain"
 	"time"
+
+	"solarmonitor/internal/domain"
 
 	_ "modernc.org/sqlite"
 )
@@ -18,7 +19,7 @@ type SQLiteStore struct {
 }
 
 func NewSQLiteStore(dbPath string) (*SQLiteStore, error) {
-	log.Println("...new DB")
+	log.Println("...new DB:: ", dbPath)
 	if dbPath == "" {
 		return nil, fmt.Errorf("No database file found...")
 	}
@@ -173,22 +174,32 @@ func (s *SQLiteStore) getLastRecord(ctx context.Context) (domain.MeterRecord, er
 	return records[0], nil
 }
 
-/*
-*
-rows, err := s.db.QueryContext(ctx, `
-        SELECT date, import, export, solar_gen,addedon
-        FROM meter_records
-        ORDER BY id DESC LIMIT 1
-    `)
+func (s *SQLiteStore) getLastRecordV2(ctx context.Context) (domain.MeterRecord, error) {
+	var last_record domain.MeterRecord
+	var dateStr string
+	var addedDateStr string
+	err := s.db.QueryRow(
+		"SELECT date, import, export, solar_gen,addedon FROM meter_records ORDER BY id DESC LIMIT 1",
+	).Scan(
+		&dateStr, &last_record.Import, &last_record.Export, &last_record.SolarGen, &addedDateStr,
+	)
+	if err != nil {
+		return domain.MeterRecord{}, err
+	}
+	parsedDate, err := time.Parse("2006-01-02", dateStr)
+	parsedAddedDate, err := time.Parse("2006-01-02 15:04", addedDateStr)
 
-*/
+	last_record.Date = parsedDate
+	last_record.AddedOn = parsedAddedDate
+	return last_record, nil
+}
 
 func (s *SQLiteStore) Save(ctx context.Context, record domain.MeterRecord) error {
 	log.Println("...Save DB")
-	last_record, errLast := s.getLastRecord(ctx)
+	last_record, errLast := s.getLastRecordV2(ctx)
 	if errLast != nil {
-		log.Println("No last record found %v", errLast)
-		return fmt.Errorf("No data found, initialize DB...")
+		log.Println("No last record found, so initializing the db... ", errLast)
+		//return fmt.Errorf("No data found, initialize DB...", errLast)
 	}
 
 	log.Println("Last record is %v", last_record)

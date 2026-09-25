@@ -18,8 +18,9 @@ import (
 )
 
 func main() {
-	// repo1 := storage.NewFileStore("solar_readings.txt")
-	repo, err := storage.NewSQLiteStore("meter_logs.db?_timelayout=2006-01-02%2015:04")
+	dbname := "meter_logs.db"
+	//dbname := "test.db"
+	repo, err := storage.NewSQLiteStore(dbname + "?_timelayout=2006-01-02%2015:04")
 	if err != nil {
 		log.Fatalf("DB init error: %v", err)
 	}
