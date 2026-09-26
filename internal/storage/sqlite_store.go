@@ -134,7 +134,7 @@ func (s *SQLiteStore) GetAll(ctx context.Context) ([]domain.MeterRecord, error) 
 			AddedOn:  parsedAddedDate,
 		}
 		records = append(records, record)
-		log.Println("Set All items in cache")
+		log.Printf("Set item in cache for :: %v\n", dateStr)
 		s.cache.Set(dateStr, record)
 	}
 
@@ -232,7 +232,7 @@ func (s *SQLiteStore) Save(ctx context.Context, record domain.MeterRecord) error
 		record.AddedOn.Format("2006-01-02 15:04"),
 	)
 	if err == nil {
-		log.Println("Setting cache for ::", record.Date)
+		log.Println("Setting cache for ::", record.Date.Format("2006-01-02"))
 		s.cache.Set(record.Date.Format("2006-01-02"), record)
 	}
 	return err
