@@ -270,7 +270,9 @@ func (s *SQLiteStore) Save(ctx context.Context, record domain.MeterRecord) error
 		record.SolarGen,
 		record.AddedOn.Format("2006-01-02 15:04"),
 	)
-	log.Println("Setting cache for ::", record)
-	s.cache.Set(record.Date.Format("2006-01-02"), record)
+	if err == nil {
+		log.Println("Setting cache for ::", record)
+		s.cache.Set(record.Date.Format("2006-01-02"), record)
+	}
 	return err
 }
