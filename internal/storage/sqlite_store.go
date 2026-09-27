@@ -90,7 +90,7 @@ func (s *SQLiteStore) GetAll(ctx context.Context) ([]domain.MeterRecord, error) 
 	cache_len := s.cache.Len()
 	itmes := s.cache.All()
 	if cache_len > 0 {
-		log.Println("found cache.........# cache", cache_len)
+		log.Println("found cache length:: ", cache_len)
 		for _, value := range itmes {
 			records = append(records, value)
 		}
@@ -143,7 +143,7 @@ func (s *SQLiteStore) GetAll(ctx context.Context) ([]domain.MeterRecord, error) 
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-
+	log.Printf("Returning from DB get all records: %v\n", len(records))
 	return records, nil
 }
 
