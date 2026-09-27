@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"iter"
 	"sync"
 )
 
@@ -8,12 +9,14 @@ import (
 type Cache[K comparable, V any] struct {
 	mu    sync.RWMutex
 	items map[K]V
+	order []K
 }
 
 // NewCache initializes and returns a new Cache.
 func NewCache[K comparable, V any]() *Cache[K, V] {
 	return &Cache[K, V]{
 		items: make(map[K]V),
+		order: make([]K, 0),
 	}
 }
 
@@ -21,19 +24,38 @@ func NewCache[K comparable, V any]() *Cache[K, V] {
 func (c *Cache[K, V]) Set(key K, value V) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if _, exists := c.items[key]; !exists {
+		c.order = append(c.order, key)
+	}
 	c.items[key] = value
 }
 
 // Get a key-value pair in the cache.
-func (c *Cache[K, V]) Get(key K) V {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	value := c.items[key]
-	return value
+func (c *Cache[K, V]) Get(key K) (V, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	value, exists := c.items[key]
+	return value, exists
+}
+
+func (c *Cache[K, V]) All() iter.Seq2[K, V] {
+	return func(yield func(K, V) bool) {
+		c.mu.RLock()
+		defer c.mu.RUnlock()
+		for _, key := range c.order {
+			if !yield(key, c.items[key]) {
+				return
+			}
+		}
+	}
+}
+
+func (c *Cache[K, V]) Len() int {
+	return len(c.order)
 }
 
 // Items returns a shallow copy of all elements stored in the cache.
-func (c *Cache[K, V]) Items() map[K]V {
+func (c *Cache[K, V]) NItems() map[K]V {
 	// 1. Acquire a Read Lock to allow multiple parallel reads but block writes
 	c.mu.RLock()
 	defer c.mu.RUnlock()

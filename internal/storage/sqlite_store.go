@@ -7,18 +7,19 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"solarmonitor/internal/domain"
 	"time"
+
+	"solarmonitor/internal/domain"
 
 	_ "modernc.org/sqlite"
 )
 
 type SQLiteStore struct {
 	db    *sql.DB
-	cache *Cache[string, domain.MeterRecord]
+	cache *Cache[int, domain.MeterRecord]
 }
 
-func NewSQLiteStore(dbPath string, cache *Cache[string, domain.MeterRecord]) (*SQLiteStore, error) {
+func NewSQLiteStore(dbPath string, cache *Cache[int, domain.MeterRecord]) (*SQLiteStore, error) {
 	log.Println("...new DB:: ", dbPath)
 	if dbPath == "" {
 		return nil, fmt.Errorf("No database file found...")
@@ -86,10 +87,10 @@ func (s *SQLiteStore) GetAll(ctx context.Context) ([]domain.MeterRecord, error) 
 	log.Println("...GetAll from Cache")
 	////
 	records := make([]domain.MeterRecord, 0)
-
-	itmes := s.cache.Items()
-	if len(itmes) > 0 {
-		log.Println("found cache.........# cache", len(itmes))
+	cache_len := s.cache.Len()
+	itmes := s.cache.All()
+	if cache_len > 0 {
+		log.Println("found cache.........# cache", cache_len)
 		for _, value := range itmes {
 			records = append(records, value)
 		}
@@ -98,7 +99,7 @@ func (s *SQLiteStore) GetAll(ctx context.Context) ([]domain.MeterRecord, error) 
 
 	/// missed cache
 
-	log.Println("Missed cached or 0 items, Going to DB now")
+	log.Println("Missed cached, Going to DB now")
 	rows, err := s.db.QueryContext(ctx, `
         SELECT id, date, import, export, solar_gen,addedon
         FROM meter_records
@@ -135,8 +136,8 @@ func (s *SQLiteStore) GetAll(ctx context.Context) ([]domain.MeterRecord, error) 
 			AddedOn:  parsedAddedDate,
 		}
 		records = append(records, record)
-		log.Printf("Set item in cache for :: %v\n", dateStr)
-		s.cache.Set(dateStr, record)
+		log.Printf("Set item in cache for :: %v\n", record.Id)
+		s.cache.Set(int(record.Id), record)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -150,19 +151,19 @@ func (s *SQLiteStore) getLastRecordV2(ctx context.Context) (domain.MeterRecord, 
 	var last_record domain.MeterRecord
 	var dateStr string
 	var addedDateStr string
+	var found bool = false
+	var latestID int = 0
 	//// geting from cache
 
-	var latestDate string
-	for dateKey := range s.cache.Items() {
-		// Standard alphanumeric string comparison works perfectly for YYYY-MM-DD
-		if latestDate == "" || dateKey > latestDate {
-			latestDate = dateKey
+	for idKey := range s.cache.All() {
+		if idKey > latestID {
+			latestID = idKey
 		}
 	}
 
-	last_record = s.cache.Get(latestDate)
-	log.Printf("Got last record from cache for :: %v\n", last_record.Id)
-	if latestDate != "" {
+	last_record, found = s.cache.Get(latestID)
+	if found {
+		log.Printf("Got last record from cache for :: %v\n", last_record.Id)
 		return last_record, nil
 	}
 	//
@@ -170,7 +171,8 @@ func (s *SQLiteStore) getLastRecordV2(ctx context.Context) (domain.MeterRecord, 
 	err := s.db.QueryRowContext(
 		ctx,
 		"SELECT id, date, import, export, solar_gen,addedon FROM meter_records ORDER BY id DESC LIMIT 1",
-	).Scan(&last_record.Id,
+	).Scan(
+		&last_record.Id,
 		&dateStr, &last_record.Import, &last_record.Export, &last_record.SolarGen, &addedDateStr,
 	)
 	if err != nil {
@@ -234,7 +236,7 @@ func (s *SQLiteStore) Save(ctx context.Context, record domain.MeterRecord) error
 	)
 	if err == nil {
 		log.Println("Setting cache for ::", record.Date.Format("2006-01-02"))
-		s.cache.Set(record.Date.Format("2006-01-02"), record)
+		s.cache.Set(int(record.Id), record)
 	}
 	return err
 }

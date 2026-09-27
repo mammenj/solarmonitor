@@ -24,7 +24,7 @@ func main() {
 	}
 	//dbname := "test.db"
 	log.Printf("Db arg %v\n", dbname)
-	cache := storage.NewCache[string, domain.MeterRecord]()
+	cache := storage.NewCache[int, domain.MeterRecord]()
 	repo, err := storage.NewSQLiteStore(dbname+"?_timelayout=2006-01-02%2015:04", cache)
 	if err != nil {
 		log.Fatalf("DB init error: %v", err)
