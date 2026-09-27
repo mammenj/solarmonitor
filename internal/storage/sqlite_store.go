@@ -147,12 +147,12 @@ func (s *SQLiteStore) GetAll(ctx context.Context) ([]domain.MeterRecord, error) 
 	return records, nil
 }
 
-func (s *SQLiteStore) getLastRecordV2(ctx context.Context) (domain.MeterRecord, error) {
+func (s *SQLiteStore) getLastRecordV2(ctx context.Context) (*domain.MeterRecord, error) {
 	var last_record domain.MeterRecord
 	var dateStr string
 	var addedDateStr string
 	var found bool = false
-	var latestID int = 0
+	var latestID int = 1
 	//// geting from cache
 
 	for idKey := range s.cache.All() {
@@ -163,11 +163,11 @@ func (s *SQLiteStore) getLastRecordV2(ctx context.Context) (domain.MeterRecord, 
 
 	last_record, found = s.cache.Get(latestID)
 	if found {
-		log.Printf("Got last record from cache for :: %v\n", last_record.Id)
-		return last_record, nil
+		log.Printf("Got last record from cache for :: %v\n", last_record)
+		return &last_record, nil
 	}
 	//
-	log.Println("Going to DB for last_record")
+	log.Println("Cache miss, so going to DB for last_record")
 	err := s.db.QueryRowContext(
 		ctx,
 		"SELECT id, date, import, export, solar_gen,addedon FROM meter_records ORDER BY id DESC LIMIT 1",
@@ -176,48 +176,49 @@ func (s *SQLiteStore) getLastRecordV2(ctx context.Context) (domain.MeterRecord, 
 		&dateStr, &last_record.Import, &last_record.Export, &last_record.SolarGen, &addedDateStr,
 	)
 	if err != nil {
-		return domain.MeterRecord{}, err
+		return nil, err
 	}
 	parsedDate, err := time.Parse("2006-01-02", dateStr)
 	if err != nil {
-		return domain.MeterRecord{}, fmt.Errorf("parse meter date %q: %w", dateStr, err)
+		return nil, fmt.Errorf("parse meter date %q: %w", dateStr, err)
 	}
 
 	parsedAddedDate, err := time.Parse("2006-01-02 15:04", addedDateStr)
 	if err != nil {
-		return domain.MeterRecord{}, fmt.Errorf("parse added date %q: %w", addedDateStr, err)
+		return nil, fmt.Errorf("parse added date %q: %w", addedDateStr, err)
 	}
 
 	last_record.Date = parsedDate
 	last_record.AddedOn = parsedAddedDate
-	return last_record, nil
+	log.Println("Adding last record to cache")
+	s.cache.Set(int(last_record.Id), last_record)
+	return &last_record, nil
 }
 
 func (s *SQLiteStore) Save(ctx context.Context, record domain.MeterRecord) error {
 	log.Println("...Save DB")
 	last_record, errLast := s.getLastRecordV2(ctx)
-	if errLast != nil {
-		log.Println("No last record found, so initializing the db... ", errLast)
-		// return fmt.Errorf("No data found, initialize DB...", errLast)
+	if last_record == nil {
+		log.Printf("No last record found, so initializing the db..%v\n. ", errLast)
 	}
-
-	log.Printf("Last record is %v\n", last_record)
 
 	now := time.Now()
 	location, _ := time.LoadLocation("Asia/Kolkata")
 	record.AddedOn = now.In(location)
+	if last_record != nil {
 
-	if record.Import < last_record.Import {
-		return fmt.Errorf("Cannot be less than to the last IMPORT")
-	}
-	if record.Export < last_record.Export {
-		return fmt.Errorf("Cannot be less than the last EXPORT")
-	}
-	if record.SolarGen < last_record.SolarGen {
-		return fmt.Errorf("Cannot be less than the last Generated SOLAR")
+		if record.Import < last_record.Import {
+			return fmt.Errorf("cannot be less than to the last IMPORT")
+		}
+		if record.Export < last_record.Export {
+			return fmt.Errorf("cannot be less than the last EXPORT")
+		}
+		if record.SolarGen < last_record.SolarGen {
+			return fmt.Errorf("cannot be less than the last Generated SOLAR")
+		}
 	}
 
-	_, err := s.db.ExecContext(
+	result, err := s.db.ExecContext(
 		ctx,
 		`
             INSERT INTO meter_records (date, import, export, solar_gen,addedon)
@@ -234,9 +235,10 @@ func (s *SQLiteStore) Save(ctx context.Context, record domain.MeterRecord) error
 		record.SolarGen,
 		record.AddedOn.Format("2006-01-02 15:04"),
 	)
+	newID, err := result.LastInsertId()
 	if err == nil {
 		log.Println("Setting cache for ::", record.Date.Format("2006-01-02"))
-		s.cache.Set(int(record.Id), record)
+		s.cache.Set(int(newID), record)
 	}
 	return err
 }
