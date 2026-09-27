@@ -6,6 +6,7 @@ import (
 )
 
 type MeterRecord struct {
+	Id       int64     `json:"id"`
 	Date     time.Time `json:"date"`
 	Import   float64   `json:"import"`
 	Export   float64   `json:"export"`

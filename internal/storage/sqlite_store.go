@@ -7,9 +7,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"time"
-
 	"solarmonitor/internal/domain"
+	"time"
 
 	_ "modernc.org/sqlite"
 )
@@ -101,7 +100,7 @@ func (s *SQLiteStore) GetAll(ctx context.Context) ([]domain.MeterRecord, error) 
 
 	log.Println("Missed cached or 0 items, Going to DB now")
 	rows, err := s.db.QueryContext(ctx, `
-        SELECT date, import, export, solar_gen,addedon
+        SELECT id, date, import, export, solar_gen,addedon
         FROM meter_records
         ORDER BY date ASC
     `)
@@ -112,8 +111,9 @@ func (s *SQLiteStore) GetAll(ctx context.Context) ([]domain.MeterRecord, error) 
 
 	for rows.Next() {
 		var dateStr, addedDateStr string
+		var id int64
 		var importValue, exportValue, solarGen float64
-		if err := rows.Scan(&dateStr, &importValue, &exportValue, &solarGen, &addedDateStr); err != nil {
+		if err := rows.Scan(&id, &dateStr, &importValue, &exportValue, &solarGen, &addedDateStr); err != nil {
 			return nil, err
 		}
 
@@ -127,6 +127,7 @@ func (s *SQLiteStore) GetAll(ctx context.Context) ([]domain.MeterRecord, error) 
 			return nil, fmt.Errorf("parse meter date %q: %w", addedDateStr, err)
 		}
 		record := domain.MeterRecord{
+			Id:       id,
 			Date:     parsedDate,
 			Import:   importValue,
 			Export:   exportValue,
@@ -160,7 +161,7 @@ func (s *SQLiteStore) getLastRecordV2(ctx context.Context) (domain.MeterRecord, 
 	}
 
 	last_record = s.cache.Get(latestDate)
-	log.Println("Got last record from cache for ::", latestDate)
+	log.Printf("Got last record from cache for :: %v\n", last_record.Id)
 	if latestDate != "" {
 		return last_record, nil
 	}
@@ -168,8 +169,8 @@ func (s *SQLiteStore) getLastRecordV2(ctx context.Context) (domain.MeterRecord, 
 	log.Println("Going to DB for last_record")
 	err := s.db.QueryRowContext(
 		ctx,
-		"SELECT date, import, export, solar_gen,addedon FROM meter_records ORDER BY id DESC LIMIT 1",
-	).Scan(
+		"SELECT id, date, import, export, solar_gen,addedon FROM meter_records ORDER BY id DESC LIMIT 1",
+	).Scan(&last_record.Id,
 		&dateStr, &last_record.Import, &last_record.Export, &last_record.SolarGen, &addedDateStr,
 	)
 	if err != nil {
@@ -195,7 +196,7 @@ func (s *SQLiteStore) Save(ctx context.Context, record domain.MeterRecord) error
 	last_record, errLast := s.getLastRecordV2(ctx)
 	if errLast != nil {
 		log.Println("No last record found, so initializing the db... ", errLast)
-		//return fmt.Errorf("No data found, initialize DB...", errLast)
+		// return fmt.Errorf("No data found, initialize DB...", errLast)
 	}
 
 	log.Printf("Last record is %v\n", last_record)
