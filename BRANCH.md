@@ -1,3 +1,3 @@
 Branch Purpose
 
-1. Implement a simple cache
+1. Release version 1.0
