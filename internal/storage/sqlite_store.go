@@ -7,8 +7,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"solarmonitor/internal/domain"
 	"time"
+
+	"solarmonitor/internal/domain"
 
 	_ "modernc.org/sqlite"
 )
@@ -147,7 +148,7 @@ func (s *SQLiteStore) GetAll(ctx context.Context) ([]domain.MeterRecord, error) 
 }
 
 func (s *SQLiteStore) Save(ctx context.Context, record domain.MeterRecord) error {
-	log.Println("...Save DB")
+	log.Printf("...Save DB %v\n", record.Id)
 	now := time.Now()
 	location, _ := time.LoadLocation("Asia/Kolkata")
 	record.AddedOn = now.In(location)
@@ -172,9 +173,24 @@ func (s *SQLiteStore) Save(ctx context.Context, record domain.MeterRecord) error
 	if err != nil {
 		return err
 	}
-	newID, err := result.LastInsertId()
-	if err == nil {
-		log.Printf("insert /update for ::%v -  %v", newID, record.Date.Format("2006-01-02"))
+	var newID int64 = -1
+	var newErr error
+	newID, newErr = result.LastInsertId()
+	if newErr == nil {
+		// need to get from cache
+		// todo
+		updateRec, found := s.cache.Get(record.Date.Format("2006-01-02"))
+		log.Printf("cache record %v\n", updateRec)
+		if found {
+			record.Id = updateRec.Id
+			log.Printf("Update so cache Id::%v\n", record.Id)
+		} else {
+			record.Id = newID
+			log.Printf("Insert so new Id::%v\n", record.Id)
+		}
+
+		//
+		log.Printf("insert /update for ::%v -  %v", record.Id, record.Date.Format("2006-01-02"))
 		s.cache.Set(record.Date.Format("2006-01-02"), record)
 	}
 	return err
