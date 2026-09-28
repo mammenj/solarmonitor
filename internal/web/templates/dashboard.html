@@ -43,7 +43,7 @@
             <div>
                 <div class="text-[10px] sm:text-xs font-medium text-slate-400 uppercase tracking-wider">Total Net Balance</div>
                 <div class="text-xl sm:text-2xl font-bold text-emerald-400 mt-1">
-                    +{{ printf "%.2f" .Overview.NetConsumption }}
+                    {{ printf "%+.2f" .Overview.NetConsumption }}
                     <span class="text-xs sm:text-sm font-normal text-slate-400">kWh</span>
                 </div>
             </div>

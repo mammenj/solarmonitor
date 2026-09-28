@@ -198,8 +198,8 @@ func (s *SQLiteStore) getLastRecordV2(ctx context.Context) (*domain.MeterRecord,
 func (s *SQLiteStore) Save(ctx context.Context, record domain.MeterRecord) error {
 	log.Println("...Save DB")
 	last_record, errLast := s.getLastRecordV2(ctx)
-	if last_record == nil {
-		log.Printf("No last record found, so initializing the db..%v\n. ", errLast)
+	if last_record == nil || errLast != nil {
+		log.Printf("No last record found, .%v\n. ", errLast)
 	}
 
 	now := time.Now()
@@ -235,6 +235,9 @@ func (s *SQLiteStore) Save(ctx context.Context, record domain.MeterRecord) error
 		record.SolarGen,
 		record.AddedOn.Format("2006-01-02 15:04"),
 	)
+	if err != nil {
+		return err
+	}
 	newID, err := result.LastInsertId()
 	if err == nil {
 		log.Println("Setting cache for ::", record.Date.Format("2006-01-02"))
