@@ -9,12 +9,11 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"syscall"
-	"time"
-
 	"solarmonitor/internal/domain"
 	"solarmonitor/internal/storage"
 	"solarmonitor/internal/web"
+	"syscall"
+	"time"
 )
 
 func main() {
@@ -22,9 +21,9 @@ func main() {
 	if len(os.Args) == 2 {
 		dbname = os.Args[1]
 	}
-	//dbname := "test.db"
+	// dbname := "test.db"
 	log.Printf("Db arg %v\n", dbname)
-	cache := storage.NewCache[int, domain.MeterRecord]()
+	cache := storage.NewCache[string, domain.MeterRecord]()
 	repo, err := storage.NewSQLiteStore(dbname+"?_timelayout=2006-01-02%2015:04", cache)
 	if err != nil {
 		log.Fatalf("DB init error: %v", err)

@@ -7,19 +7,18 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"time"
-
 	"solarmonitor/internal/domain"
+	"time"
 
 	_ "modernc.org/sqlite"
 )
 
 type SQLiteStore struct {
 	db    *sql.DB
-	cache *Cache[int, domain.MeterRecord]
+	cache *Cache[string, domain.MeterRecord]
 }
 
-func NewSQLiteStore(dbPath string, cache *Cache[int, domain.MeterRecord]) (*SQLiteStore, error) {
+func NewSQLiteStore(dbPath string, cache *Cache[string, domain.MeterRecord]) (*SQLiteStore, error) {
 	log.Println("...new DB:: ", dbPath)
 	if dbPath == "" {
 		return nil, fmt.Errorf("no database file found")
@@ -64,8 +63,8 @@ func (s *SQLiteStore) init() error {
 	log.Println("...init DB")
 	_, err := s.db.Exec(`
         CREATE TABLE IF NOT EXISTS meter_records (
-						id INTEGER PRIMARY KEY,
-						date TEXT NOT NULL UNIQUE,
+						id INTEGER PRIMARY KEY AUTOINCREMENT,
+						date TEXT UNIQUE NOT NULL,
             import REAL NOT NULL,
             export REAL NOT NULL,
             solar_gen REAL NOT NULL,
@@ -136,8 +135,8 @@ func (s *SQLiteStore) GetAll(ctx context.Context) ([]domain.MeterRecord, error) 
 			AddedOn:  parsedAddedDate,
 		}
 		records = append(records, record)
-		log.Printf("Set item in cache for :: %v\n", record.Id)
-		s.cache.Set(int(record.Id), record)
+		log.Printf("Set item in cache for :: %v\n", dateStr)
+		s.cache.Set(dateStr, record)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -147,76 +146,11 @@ func (s *SQLiteStore) GetAll(ctx context.Context) ([]domain.MeterRecord, error) 
 	return records, nil
 }
 
-func (s *SQLiteStore) getLastRecordV2(ctx context.Context) (*domain.MeterRecord, error) {
-	var lastrecord domain.MeterRecord
-	var dateStr string
-	var addedDateStr string
-	var found bool = false
-	var latestID int = 1
-	//// geting from cache
-
-	for idKey := range s.cache.All() {
-		if idKey > latestID {
-			latestID = idKey
-		}
-	}
-
-	lastrecord, found = s.cache.Get(latestID)
-	if found {
-		log.Printf("Got last record from cache for :: %v\n", lastrecord)
-		return &lastrecord, nil
-	}
-	//
-	log.Println("Cache miss, so going to DB for last_record")
-	err := s.db.QueryRowContext(
-		ctx,
-		"SELECT id, date, import, export, solar_gen,addedon FROM meter_records ORDER BY id DESC LIMIT 1",
-	).Scan(
-		&lastrecord.Id,
-		&dateStr, &lastrecord.Import, &lastrecord.Export, &lastrecord.SolarGen, &addedDateStr,
-	)
-	if err != nil {
-		return nil, err
-	}
-	parsedDate, err := time.Parse("2006-01-02", dateStr)
-	if err != nil {
-		return nil, fmt.Errorf("parse meter date %q: %w", dateStr, err)
-	}
-
-	parsedAddedDate, err := time.Parse("2006-01-02 15:04", addedDateStr)
-	if err != nil {
-		return nil, fmt.Errorf("parse added date %q: %w", addedDateStr, err)
-	}
-
-	lastrecord.Date = parsedDate
-	lastrecord.AddedOn = parsedAddedDate
-	log.Println("Adding last record to cache")
-	s.cache.Set(int(lastrecord.Id), lastrecord)
-	return &lastrecord, nil
-}
-
 func (s *SQLiteStore) Save(ctx context.Context, record domain.MeterRecord) error {
 	log.Println("...Save DB")
-	lastrecord, errLast := s.getLastRecordV2(ctx)
-	if lastrecord == nil || errLast != nil {
-		log.Printf("No last record found, .%v\n. ", errLast)
-	}
-
 	now := time.Now()
 	location, _ := time.LoadLocation("Asia/Kolkata")
 	record.AddedOn = now.In(location)
-	if lastrecord != nil {
-
-		if record.Import < lastrecord.Import {
-			return fmt.Errorf("cannot be less than to the last IMPORT")
-		}
-		if record.Export < lastrecord.Export {
-			return fmt.Errorf("cannot be less than the last EXPORT")
-		}
-		if record.SolarGen < lastrecord.SolarGen {
-			return fmt.Errorf("cannot be less than the last Generated SOLAR")
-		}
-	}
 
 	result, err := s.db.ExecContext(
 		ctx,
@@ -240,8 +174,8 @@ func (s *SQLiteStore) Save(ctx context.Context, record domain.MeterRecord) error
 	}
 	newID, err := result.LastInsertId()
 	if err == nil {
-		log.Println("Setting cache for ::", record.Date.Format("2006-01-02"))
-		s.cache.Set(int(newID), record)
+		log.Printf("insert /update for ::%v -  %v", newID, record.Date.Format("2006-01-02"))
+		s.cache.Set(record.Date.Format("2006-01-02"), record)
 	}
 	return err
 }
