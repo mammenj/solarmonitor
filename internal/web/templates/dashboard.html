@@ -92,24 +92,24 @@
                 <div class="grid grid-cols-2 gap-2 pt-0.5 font-mono text-[11px]">
                     <div>
                         <span class="text-slate-500 block text-[9px] font-sans">Import Added</span>
-                        <span class="text-red-400">+{{ printf "%.2f" .Import }} kWh</span>
+                        <span class="text-red-400">{{ printf "%+.2f" .Import }} kWh</span>
                     </div>
                     <div>
                         <span class="text-slate-500 block text-[9px] font-sans">Export Added</span>
-                        <span class="text-emerald-400">+{{ printf "%.2f" .Export }} kWh</span>
+                        <span class="text-emerald-400">{{ printf "%+.2f" .Export }} kWh</span>
                     </div>
                     <div>
                         <span class="text-slate-500 block text-[9px] font-sans">Net Difference</span>
-                        <span class="text-emerald-400 font-bold">+{{ printf "%.2f" .NetEnergy }} kWh</span>
+                        <span class="text-emerald-400 font-bold">{{ printf "%+.2f" .NetEnergy }} kWh</span>
                     </div>
                     <div>
                         <span class="text-slate-500 block text-[9px] font-sans">Home Consumed</span>
-                        <span class="text-cyan-400 font-bold">{{ printf "%.2f" .Consumption }} kWh</span>
+                        <span class="text-cyan-400 font-bold">{{ printf "%+.2f" .Consumption }} kWh</span>
                     </div>
                 </div>
                 <div class="text-[10px] text-slate-400 bg-slate-900/60 p-1.5 rounded border border-slate-800/80 flex justify-between font-mono">
                     <span class="font-sans text-slate-500">Daily Average:</span>
-                    <span class="text-cyan-300">{{ printf "%.2f" .DailyAvgConsom }} kWh/day</span>
+                    <span class="text-cyan-300">{{ printf "%+.2f" .DailyAvgConsom }} kWh/day</span>
                 </div>
             </div>
             {{ else }}
