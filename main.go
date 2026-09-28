@@ -101,10 +101,4 @@ func main() {
 	}
 
 	log.Println("Solar Monitor stopped successfully.")
-
-	//
-	//fmt.Println("⚡ Solar Monitor running at http://0.0.0.0:8080")
-	//if err := http.ListenAndServe(":8080", mux); err != nil {
-	//	log.Fatal(err)
-	//}
 }
