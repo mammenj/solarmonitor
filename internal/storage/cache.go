@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"slices"
 	"sync"
 )
 
@@ -47,6 +48,15 @@ func (c *Cache[K, V]) AllValues() []V {
 		values = append(values, c.items[key])
 	}
 	return values
+}
+
+func (c *Cache[K, V]) Del(key K) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.items, key)
+	c.order = slices.DeleteFunc(c.order, func(e K) bool {
+		return e == key
+	})
 }
 
 // Len returns the current size of the cache.
