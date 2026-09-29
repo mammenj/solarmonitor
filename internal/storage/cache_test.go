@@ -1,87 +1,104 @@
 package storage
 
 import (
-	"slices"
+	"reflect"
+	"sync"
 	"testing"
 )
 
-// Helper function to extract all keys in order from the c.All() iterator
-func collectOrderedKeys[K comparable, V any](c *Cache[K, V]) []K {
-	var keys []K
-	for k := range c.All() {
-		keys = append(keys, k)
-	}
-	return keys
-}
+func TestCache_SetAndGet(t *testing.T) {
+	cache := NewCache[string, int]()
 
-// TestInsertionOrder verifies that elements are iterated over in the exact order they were first inserted.
-func TestInsertionOrder(t *testing.T) {
-	c := NewCache[string, int]()
+	cache.Set("apple", 1)
+	cache.Set("banana", 2)
 
-	inputs := []struct {
-		key   string
-		value int
-	}{
-		{"apple", 1},
-		{"banana", 2},
-		{"cherry", 3},
+	// Test existing keys
+	if val, ok := cache.Get("apple"); !ok || val != 1 {
+		t.Errorf("Expected apple to be 1, got %v (exists: %v)", val, ok)
 	}
 
-	for _, input := range inputs {
-		c.Set(input.key, input.value)
+	// Test updating an existing key
+	cache.Set("apple", 10)
+	if val, ok := cache.Get("apple"); !ok || val != 10 {
+		t.Errorf("Expected updated apple to be 10, got %v", val)
 	}
 
-	expectedOrder := []string{"apple", "banana", "cherry"}
-	actualOrder := collectOrderedKeys(c)
-
-	if !slices.Equal(actualOrder, expectedOrder) {
-		t.Errorf("expected order %v, got %v", expectedOrder, actualOrder)
+	// Test non-existent key
+	if _, ok := cache.Get("orange"); ok {
+		t.Errorf("Expected orange to not exist")
 	}
 }
 
-// TestUpdateDoesNotChangeOrder verifies that updating the value of an existing key
-// does not alter its position in the insertion sequence.
-func TestUpdateDoesNotChangeOrder(t *testing.T) {
-	c := NewCache[string, int]()
+func TestCache_AllValuesOrder(t *testing.T) {
+	cache := NewCache[string, string]()
 
-	c.Set("apple", 1)
-	c.Set("banana", 2)
-	c.Set("cherry", 3)
+	cache.Set("k1", "v1")
+	cache.Set("k2", "v2")
+	cache.Set("k3", "v3")
+	cache.Set("k1", "v1_updated") // Update shouldn't change insertion order index
 
-	// Update an existing key in the middle
-	c.Set("banana", 20)
+	expected := []string{"v1_updated", "v2", "v3"}
+	actual := cache.AllValues()
 
-	// The order must remain unchanged despite the value change
-	expectedOrder := []string{"apple", "banana", "cherry"}
-	actualOrder := collectOrderedKeys(c)
-
-	if !slices.Equal(actualOrder, expectedOrder) {
-		t.Errorf("expected order %v after update, got %v", expectedOrder, actualOrder)
-	}
-
-	// Double check the value updated correctly
-	val, ok := c.Get("banana")
-	if !ok || val != 20 {
-		t.Errorf("expected updated value 20 for key 'banana', got %v (ok: %t)", val, ok)
+	if !reflect.DeepEqual(actual, expected) {
+		t.Errorf("Expected order %v, got %v", expected, actual)
 	}
 }
 
-// TestIteratorEarlyBreak verifies that the c.All() iterator cleanly exits when the loop breaks early.
-func TestIteratorEarlyBreak(t *testing.T) {
-	c := NewCache[string, int]()
-	c.Set("A", 1)
-	c.Set("B", 2)
-	c.Set("C", 3)
+func TestCache_Del(t *testing.T) {
+	cache := NewCache[int, string]()
 
-	count := 0
-	for range c.All() {
-		count++
-		if count == 2 {
-			break // Break early to trigger standard yield evaluation path return
-		}
+	cache.Set(1, "one")
+	cache.Set(2, "two")
+	cache.Set(3, "three")
+
+	cache.Del(2)
+
+	// Verify key is gone from map lookup
+	if _, ok := cache.Get(2); ok {
+		t.Errorf("Expected key 2 to be deleted")
 	}
 
-	if count != 2 {
-		t.Errorf("expected iterator to process exactly 2 items before breaking, processed %d", count)
+	// Verify order slice removed the item and preserved remaining order
+	expectedValues := []string{"one", "three"}
+	if actualValues := cache.AllValues(); !reflect.DeepEqual(actualValues, expectedValues) {
+		t.Errorf("Expected remaining values %v, got %v", expectedValues, actualValues)
+	}
+
+	// Verify length updated
+	if cache.Len() != 2 {
+		t.Errorf("Expected length 2, got %d", cache.Len())
+	}
+}
+
+func TestCache_Concurrency(t *testing.T) {
+	cache := NewCache[int, int]()
+	var wg sync.WaitGroup
+	workers := 100
+
+	// Concurrent writes
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func(val int) {
+			defer wg.Done()
+			cache.Set(val, val*10)
+		}(i)
+	}
+
+	// Concurrent reads
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func(val int) {
+			defer wg.Done()
+			_, _ = cache.Get(val)
+			_ = cache.AllValues()
+			_ = cache.Len()
+		}(i)
+	}
+
+	wg.Wait()
+
+	if cache.Len() != workers {
+		t.Errorf("Expected final size to match worker count %d, got %d", workers, cache.Len())
 	}
 }
