@@ -1,11 +1,10 @@
 package storage
 
 import (
-	"iter"
 	"sync"
 )
 
-// Cache represents a generic, thread-safe in-memory cache.
+// Cache represents a generic, thread-safe in-memory cache that preserves insertion order.
 type Cache[K comparable, V any] struct {
 	mu    sync.RWMutex
 	items map[K]V
@@ -20,7 +19,7 @@ func NewCache[K comparable, V any]() *Cache[K, V] {
 	}
 }
 
-// Set adds or updates a key-value pair in the cache.
+// Set adds or updates a key-value pair in the cache while tracking insertion order.
 func (c *Cache[K, V]) Set(key K, value V) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -30,7 +29,7 @@ func (c *Cache[K, V]) Set(key K, value V) {
 	c.items[key] = value
 }
 
-// Get a key-value pair in the cache.
+// Get retrieves a key-value pair from the cache.
 func (c *Cache[K, V]) Get(key K) (V, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -38,35 +37,21 @@ func (c *Cache[K, V]) Get(key K) (V, bool) {
 	return value, exists
 }
 
-func (c *Cache[K, V]) All() iter.Seq2[K, V] {
-	return func(yield func(K, V) bool) {
-		c.mu.RLock()
-		defer c.mu.RUnlock()
-		for _, key := range c.order {
-			if !yield(key, c.items[key]) {
-				return
-			}
-		}
-	}
-}
-
-func (c *Cache[K, V]) Len() int {
-	return len(c.order)
-}
-
-// Items returns a shallow copy of all elements stored in the cache.
-func (c *Cache[K, V]) NItems() map[K]V {
-	// 1. Acquire a Read Lock to allow multiple parallel reads but block writes
+// AllValues returns a shallow copy list of all values in their exact insertion order.
+func (c *Cache[K, V]) AllValues() []V {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	// 2. Allocate a new map to prevent external mutations from affecting internal state
-	results := make(map[K]V, len(c.items))
-
-	// 3. Copy elements from the internal cache map to the result map
-	for k, v := range c.items {
-		results[k] = v
+	values := make([]V, 0, len(c.order))
+	for _, key := range c.order {
+		values = append(values, c.items[key])
 	}
+	return values
+}
 
-	return results
+// Len returns the current size of the cache.
+func (c *Cache[K, V]) Len() int {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return len(c.order)
 }

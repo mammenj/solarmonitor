@@ -85,15 +85,11 @@ func (s *SQLiteStore) Close() error {
 
 func (s *SQLiteStore) GetAll(ctx context.Context) ([]domain.MeterRecord, error) {
 	log.Println("...GetAll from Cache")
-	////
-	records := make([]domain.MeterRecord, 0)
+
 	cachelen := s.cache.Len()
-	itmes := s.cache.All()
 	if cachelen > 0 {
-		log.Println("found cache length:: ", cachelen)
-		for _, value := range itmes {
-			records = append(records, value)
-		}
+		log.Println("found cache, length:: ", cachelen)
+		records := s.cache.AllValues()
 		return records, nil
 	}
 
@@ -110,6 +106,7 @@ func (s *SQLiteStore) GetAll(ctx context.Context) ([]domain.MeterRecord, error) 
 	}
 	defer rows.Close()
 
+	var records []domain.MeterRecord
 	for rows.Next() {
 		var dateStr, addedDateStr string
 		var id int64
@@ -149,49 +146,40 @@ func (s *SQLiteStore) GetAll(ctx context.Context) ([]domain.MeterRecord, error) 
 
 func (s *SQLiteStore) Save(ctx context.Context, record domain.MeterRecord) error {
 	log.Printf("...Save DB %v\n", record.Id)
-	now := time.Now()
-	location, _ := time.LoadLocation("Asia/Kolkata")
-	record.AddedOn = now.In(location)
 
-	result, err := s.db.ExecContext(
-		ctx,
-		`
-            INSERT INTO meter_records (date, import, export, solar_gen,addedon)
-            VALUES (?, ?, ?, ?, ?)
-            ON CONFLICT(date) DO UPDATE SET
-                import = excluded.import,
-                export = excluded.export,
-                solar_gen = excluded.solar_gen,
-								addedon = excluded.addedon 
-        `,
-		record.Date.Format("2006-01-02"),
+	location, err := time.LoadLocation("Asia/Kolkata")
+	if err != nil {
+		return err
+	}
+	record.AddedOn = time.Now().In(location)
+	dateKey := record.Date.Format("2006-01-02")
+
+	// RETURNING id fixes the fallback update tracking error cleanly
+	query := `
+		INSERT INTO meter_records (date, import, export, solar_gen, addedon) 
+		VALUES (?, ?, ?, ?, ?) 
+		ON CONFLICT(date) DO UPDATE SET 
+			import = excluded.import, 
+			export = excluded.export, 
+			solar_gen = excluded.solar_gen, 
+			addedon = excluded.addedon
+		RETURNING id`
+
+	var actualID int64
+	err = s.db.QueryRowContext(
+		ctx, query,
+		dateKey,
 		record.Import,
 		record.Export,
 		record.SolarGen,
 		record.AddedOn.Format("2006-01-02 15:04"),
-	)
+	).Scan(&actualID)
 	if err != nil {
 		return err
 	}
-	var newID int64 = -1
-	var newErr error
-	newID, newErr = result.LastInsertId()
-	if newErr == nil {
-		// need to get from cache
-		// todo
-		updateRec, found := s.cache.Get(record.Date.Format("2006-01-02"))
-		log.Printf("cache record %v\n", updateRec)
-		if found {
-			record.Id = updateRec.Id
-			log.Printf("Update so cache Id::%v\n", record.Id)
-		} else {
-			record.Id = newID
-			log.Printf("Insert so new Id::%v\n", record.Id)
-		}
+	log.Printf("Actual ID is %v\n", actualID)
+	record.Id = actualID
+	s.cache.Set(dateKey, record)
 
-		//
-		log.Printf("insert /update for ::%v -  %v", record.Id, record.Date.Format("2006-01-02"))
-		s.cache.Set(record.Date.Format("2006-01-02"), record)
-	}
-	return err
+	return nil
 }
