@@ -54,9 +54,14 @@ func (c *Cache[K, V]) Del(key K) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	delete(c.items, key)
-	c.order = slices.DeleteFunc(c.order, func(e K) bool {
-		return e == key
-	})
+	// Stops scanning immediately once the unique key is found
+	if idx := slices.Index(c.order, key); idx != -1 {
+		c.order = slices.Delete(c.order, idx, idx+1)
+	}
+
+	//c.order = slices.DeleteFunc(c.order, func(e K) bool {
+	//return e == key
+	//})
 }
 
 // Len returns the current size of the cache.
