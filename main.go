@@ -14,6 +14,8 @@ import (
 	"solarmonitor/internal/web"
 	"syscall"
 	"time"
+
+	"github.com/mammenj/ocached"
 )
 
 func main() {
@@ -23,7 +25,8 @@ func main() {
 	}
 	// dbname := "test.db"
 	log.Printf("Db arg %v\n", dbname)
-	cache := storage.NewCache[string, domain.MeterRecord]()
+	cache := ocached.NewCache[string, domain.MeterRecord]()
+
 	repo, err := storage.NewSQLiteStore(dbname+"?_timelayout=2006-01-02%2015:04", cache)
 	if err != nil {
 		log.Fatalf("DB init error: %v", err)

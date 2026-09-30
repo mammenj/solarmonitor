@@ -7,19 +7,19 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"solarmonitor/internal/domain"
 	"time"
 
-	"solarmonitor/internal/domain"
-
+	"github.com/mammenj/ocached"
 	_ "modernc.org/sqlite"
 )
 
 type SQLiteStore struct {
 	db    *sql.DB
-	cache *Cache[string, domain.MeterRecord]
+	cache *ocached.Cache[string, domain.MeterRecord]
 }
 
-func NewSQLiteStore(dbPath string, cache *Cache[string, domain.MeterRecord]) (*SQLiteStore, error) {
+func NewSQLiteStore(dbPath string, cache *ocached.Cache[string, domain.MeterRecord]) (*SQLiteStore, error) {
 	log.Println("...new DB:: ", dbPath)
 	if dbPath == "" {
 		return nil, fmt.Errorf("no database file found")

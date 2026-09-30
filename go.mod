@@ -2,7 +2,10 @@ module solarmonitor
 
 go 1.27
 
-require modernc.org/sqlite v1.38.2
+require (
+	github.com/mammenj/ocached v1.0.0
+	modernc.org/sqlite v1.38.2
+)
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
