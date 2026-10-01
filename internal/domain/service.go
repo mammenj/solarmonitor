@@ -12,11 +12,17 @@ var (
 )
 
 type SolarService struct {
-	repo Repository
+	repo    Repository
+	dbname  string
+	version string
 }
 
-func NewSolarService(repo Repository) *SolarService {
-	return &SolarService{repo: repo}
+func NewSolarService(repo Repository, dbname string, version string) *SolarService {
+	return &SolarService{
+		repo:    repo,
+		dbname:  dbname,
+		version: version,
+	}
 }
 
 func (s *SolarService) GetOverview(ctx context.Context) (SystemOverview, error) {
@@ -40,6 +46,8 @@ func (s *SolarService) GetOverview(ctx context.Context) (SystemOverview, error) 
 		Records:      records,
 		Summaries:    summaries,
 		LastBaseline: lastBaseline,
+		DBName:       s.dbname,
+		Version:      s.version,
 	}, nil
 }
 

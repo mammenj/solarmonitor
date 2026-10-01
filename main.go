@@ -9,11 +9,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
+	"time"
+
 	"solarmonitor/internal/domain"
 	"solarmonitor/internal/storage"
 	"solarmonitor/internal/web"
-	"syscall"
-	"time"
 
 	"github.com/mammenj/ocached"
 )
@@ -37,7 +38,8 @@ func main() {
 			log.Printf("Error cleaning up repo on panic: %v", err)
 		}
 	}()
-	service := domain.NewSolarService(repo)
+	version := "solarmonitorV5"
+	service := domain.NewSolarService(repo, dbname, version)
 
 	tmpl, err := web.InitTemplates()
 	if err != nil {

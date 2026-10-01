@@ -30,6 +30,8 @@ type SystemOverview struct {
 	Records      []MeterRecord   `json:"records"`
 	Summaries    []PeriodSummary `json:"summaries"`
 	LastBaseline *MeterRecord    `json:"last_baseline"`
+	DBName       string          `json:"db_name"`
+	Version      string          `json:"version"`
 }
 
 // Helper methods on PeriodSummary for easy template display without structural changes
