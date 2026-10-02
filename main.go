@@ -38,7 +38,7 @@ func main() {
 			log.Printf("Error cleaning up repo on panic: %v", err)
 		}
 	}()
-	version := "solarmonitorV5"
+	version := "solarV6R"
 	service := domain.NewSolarService(repo, dbname, version)
 
 	tmpl, err := web.InitTemplates()
