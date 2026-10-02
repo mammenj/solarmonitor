@@ -9,25 +9,31 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"syscall"
-	"time"
-
 	"solarmonitor/internal/domain"
 	"solarmonitor/internal/storage"
 	"solarmonitor/internal/web"
+	"syscall"
+	"time"
 
 	"github.com/mammenj/ocached"
 )
 
 func main() {
-	dbname := "meter_logs.db"
-	if len(os.Args) == 2 {
-		dbname = os.Args[1]
+	// Load the file manually
+	if err := loadEnv(".env"); err != nil {
+		log.Println("Warning: Could not load .env file:", err)
 	}
-	// dbname := "test.db"
-	log.Printf("Db arg %v\n", dbname)
-	cache := ocached.NewCache[string, domain.MeterRecord]()
 
+	// Read your variable normally
+	dbname := os.Getenv("DB_NAME")
+	port := os.Getenv("PORT")
+	version := os.Getenv("VERSION")
+
+	log.Printf("Db arg:%v\n", dbname)
+	log.Printf("Port:%v\n", port)
+	log.Printf("Version %v\n", version)
+
+	cache := ocached.NewCache[string, domain.MeterRecord]()
 	repo, err := storage.NewSQLiteStore(dbname+"?_timelayout=2006-01-02%2015:04", cache)
 	if err != nil {
 		log.Fatalf("DB init error: %v", err)
@@ -38,7 +44,6 @@ func main() {
 			log.Printf("Error cleaning up repo on panic: %v", err)
 		}
 	}()
-	version := "solarV6R"
 	service := domain.NewSolarService(repo, dbname, version)
 
 	tmpl, err := web.InitTemplates()
@@ -65,7 +70,7 @@ func main() {
 
 	// 2. Explicitly configure http.Server instead of using shorthand http.ListenAndServe
 	srv := &http.Server{
-		Addr:    ":8080",
+		Addr:    port,
 		Handler: mux,
 	}
 	////
