@@ -9,11 +9,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
+	"time"
+
 	"solarmonitor/internal/domain"
 	"solarmonitor/internal/storage"
 	"solarmonitor/internal/web"
-	"syscall"
-	"time"
 
 	"github.com/mammenj/ocached"
 )
@@ -21,11 +22,15 @@ import (
 func main() {
 	// Load the file manually
 	if err := loadEnv(".env"); err != nil {
-		log.Println("Warning: Could not load .env file:", err)
+		log.Fatalf("Error: Could not load .env file: %v", err)
+	}
+	dbname := "temp.db"
+	if len(os.Args) == 2 {
+		dbname = os.Args[1]
+	} else {
+		dbname = os.Getenv("DB_NAME")
 	}
 
-	// Read your variable normally
-	dbname := os.Getenv("DB_NAME")
 	port := os.Getenv("PORT")
 	version := os.Getenv("VERSION")
 
