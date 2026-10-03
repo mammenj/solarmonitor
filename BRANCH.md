@@ -1,3 +1,3 @@
 Branch Purpose
 
-1. Release version 1.0
+1. Release version V7
