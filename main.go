@@ -9,12 +9,11 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"syscall"
-	"time"
-
 	"solarmonitor/internal/domain"
 	"solarmonitor/internal/storage"
 	"solarmonitor/internal/web"
+	"syscall"
+	"time"
 
 	"github.com/mammenj/ocached"
 )
@@ -33,7 +32,8 @@ func main() {
 
 	port := os.Getenv("PORT")
 	version := os.Getenv("VERSION")
-
+	builtOn := time.Now().Format("2006.01.02")
+	version = version + ":" + builtOn
 	log.Printf("Db arg:%v\n", dbname)
 	log.Printf("Port:%v\n", port)
 	log.Printf("Version %v\n", version)
