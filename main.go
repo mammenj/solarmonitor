@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"solarmonitor/internal/domain"
 	"solarmonitor/internal/storage"
 	"solarmonitor/internal/web"
@@ -32,8 +33,13 @@ func main() {
 
 	port := os.Getenv("PORT")
 	version := os.Getenv("VERSION")
-	builtOn := time.Now().Format("2006.01.02")
-	version = version + ":" + builtOn
+	_, err := time.LoadLocation("Asia/Kolkata")
+	if err != nil {
+		log.Fatalf("could not get location", err)
+	}
+	commitTime := getCommitTime()
+	// builtOn := time.Now().In(location).Format("2006.01.02.15:03")
+	version = version + ":" + commitTime
 	log.Printf("Db arg:%v\n", dbname)
 	log.Printf("Port:%v\n", port)
 	log.Printf("Version %v\n", version)
@@ -115,4 +121,18 @@ func main() {
 	}
 
 	log.Println("Solar Monitor stopped successfully.")
+}
+
+func getCommitTime() string {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return "unknown"
+	}
+
+	for _, setting := range info.Settings {
+		if setting.Key == "vcs.time" {
+			return setting.Value // Returns RFC3339 format (e.g., 2026-10-03T08:27:00Z)
+		}
+	}
+	return "no vcs info"
 }
