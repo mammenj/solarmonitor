@@ -134,5 +134,5 @@ func getCommitTime() string {
 			return setting.Value // Returns RFC3339 format (e.g., 2026-10-03T08:27:00Z)
 		}
 	}
-	return "no vcs info"
+	return "noinfo"
 }
