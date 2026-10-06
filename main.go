@@ -21,7 +21,7 @@ import (
 
 func main() {
 	// Load the file manually
-	if err := loadEnv(".env"); err != nil {
+	if err := domain.LoadEnv(".env"); err != nil {
 		log.Fatalf("Error: Could not load .env file: %v", err)
 	}
 	dbname := "temp.db"

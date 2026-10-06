@@ -1,14 +1,12 @@
-package main
+package domain
 
 import (
-	"fmt"
-	"log"
 	"os"
 	"strings"
 )
 
 // loadEnv manually reads a .env file and injects variables into the environment
-func loadEnv(filepath string) error {
+func LoadEnv(filepath string) error {
 	bytes, err := os.ReadFile(filepath)
 	if err != nil {
 		return err
@@ -38,15 +36,4 @@ func loadEnv(filepath string) error {
 		os.Setenv(key, value)
 	}
 	return nil
-}
-
-func main2() {
-	// Load the file manually
-	if err := loadEnv(".env"); err != nil {
-		log.Println("Warning: Could not load .env file:", err)
-	}
-
-	// Read your variable normally
-	dbUser := os.Getenv("DB_USER")
-	fmt.Println("Database User:", dbUser)
 }
