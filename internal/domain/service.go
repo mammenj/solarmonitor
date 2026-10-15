@@ -37,6 +37,10 @@ func (s *SolarService) GetOverview(ctx context.Context) (SystemOverview, error) 
 
 	summaries := s.CalculateSummaries(records)
 
+	sort.Slice(records, func(i, j int) bool {
+		return records[i].Date.After(records[j].Date)
+	})
+
 	var lastBaseline *MeterRecord
 	if len(records) > 0 {
 		lastBaseline = &records[len(records)-1]
