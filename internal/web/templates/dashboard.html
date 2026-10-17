@@ -6,9 +6,9 @@
         <!-- Total Readings Count -->
         <div class="bg-slate-900 border border-slate-800 rounded-lg p-3.5 flex flex-col justify-between">
             <div>
-                <div class="text-[10px] sm:text-xs font-medium text-slate-400 uppercase tracking-wider">Total Readings</div>
+                <div class="text-[10px] sm:text-xs font-medium text-slate-400 uppercase tracking-wider">Total Days</div>
                 <div class="text-xl sm:text-2xl font-bold text-slate-100 mt-1">
-                    {{ len .Overview.Records }} <span class="text-xs sm:text-sm font-normal text-slate-400">entries</span>
+                    {{ .Overview.TotalDays }} <span class="text-xs sm:text-sm font-normal text-slate-400">days</span>
                 </div>
             </div>
             <div class="text-[10px] sm:text-xs text-slate-500 mt-1">Logged in filestore</div>

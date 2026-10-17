@@ -83,6 +83,14 @@ func (so SystemOverview) TotalExport() float64 {
 	return total
 }
 
+func (so SystemOverview) TotalDays() int {
+	var total int
+	for _, s := range so.Summaries {
+		total += int(s.Days)
+	}
+	return total
+}
+
 // TotalImport calculates total kWh imported across all period summaries.
 func (so SystemOverview) TotalImport() float64 {
 	var total float64
